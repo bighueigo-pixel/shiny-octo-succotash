@@ -136,14 +136,14 @@
             <input type="text" id="courtName" value="新店運動中心羽球場" oninput="saveAndRender()">
         </div>
         
-        <!-- 橫向合併：球隊與隊長 (比例配置為 1.5 : 1，讓隊長欄位短一點) -->
+        <!-- 橫向合併：球隊與值日生 (比例配置為 1.5 : 1) -->
         <div class="split-row">
             <div class="split-item" style="flex: 1.5;">
                 <span class="label">球隊</span>
                 <input type="text" id="teamName" value="W00A00羽球隊" oninput="saveAndRender()">
             </div>
             <div class="split-item" style="flex: 1;">
-                <span class="label">本日隊長</span>
+                <span class="label">值日生</span>
                 <input type="text" id="captainName" value="Hueigo" placeholder="姓名" oninput="saveAndRender()">
             </div>
         </div>
@@ -275,20 +275,20 @@
     }
 
     function init() {
-        if (!localStorage.getItem('playDate_v16')) {
+        if (!localStorage.getItem('playDate_v17')) {
             document.getElementById('playDate').value = getTodayString();
         }
 
         const fields = ['teamName', 'courtName', 'captainName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee', 'priceCash', 'priceCard', 'priceDiff'];
         fields.forEach(field => {
-            const saved = localStorage.getItem(field + '_v16');
+            const saved = localStorage.getItem(field + '_v17');
             if (saved !== null) document.getElementById(field).value = saved;
         });
 
-        const savedType = localStorage.getItem('labelType_v16');
+        const savedType = localStorage.getItem('labelType_v17');
         if (savedType) currentLabelType = savedType;
         
-        const savedLabels = localStorage.getItem('courtLabels_v16');
+        const savedLabels = localStorage.getItem('courtLabels_v17');
         if (savedLabels) {
             restoreCourtInputs(JSON.parse(savedLabels));
         } else {
@@ -297,7 +297,7 @@
 
         updateDay();
 
-        const savedData = localStorage.getItem('badmintonData_v16');
+        const savedData = localStorage.getItem('badmintonData_v17');
         if (savedData) players = JSON.parse(savedData);
         
         render();
@@ -306,13 +306,13 @@
     function saveAndRender() {
         const fields = ['teamName', 'courtName', 'captainName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee', 'priceCash', 'priceCard', 'priceDiff'];
         fields.forEach(field => {
-            localStorage.setItem(field + '_v16', document.getElementById(field).value);
+            localStorage.setItem(field + '_v17', document.getElementById(field).value);
         });
         
-        localStorage.setItem('labelType_v16', currentLabelType);
+        localStorage.setItem('labelType_v17', currentLabelType);
         const labelSelects = document.querySelectorAll('.court-input');
-        localStorage.setItem('courtLabels_v16', JSON.stringify(Array.from(labelSelects).map(sel => sel.value)));
-        localStorage.setItem('badmintonData_v16', JSON.stringify(players));
+        localStorage.setItem('courtLabels_v17', JSON.stringify(Array.from(labelSelects).map(sel => sel.value)));
+        localStorage.setItem('badmintonData_v17', JSON.stringify(players));
         render();
     }
 
@@ -558,7 +558,7 @@
 
         const report = 
 `【${teamName} - ${courtName} 結算報表】
-本日隊長：${captainName}
+值日生：${captainName}
 日期：${playDate} ${dayOfWeek}
 時間：${startTime} - ${endTime}
 場地：${courtCount} 面 (編號：${courtLabelsStr})
