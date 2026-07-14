@@ -9,7 +9,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
             background: #f0f2f5; padding: 15px; margin: 0; color: #333;
         }
-        .container { max-width: 500px; margin: 0 auto; padding-bottom: 20px; }
+        .container { max-width: 500px; margin: 0 auto; padding-bottom: 30px; }
         .header { 
             background: #2e7d32; color: white; padding: 15px; 
             border-radius: 8px; margin-bottom: 15px; text-align: center; 
@@ -36,8 +36,11 @@
         .split-item .label { flex-shrink: 0; color: #555; font-weight: bold; font-size: 0.95rem; margin-right: 6px; white-space: nowrap;}
         .split-item input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; width: 100%; min-width: 0; box-sizing: border-box;}
 
-        .inline-group { display: flex; align-items: center; flex: 1; gap: 6px; flex-wrap: wrap;}
+        /* 動態設定區縮小間距以防換行 */
+        .inline-group { display: flex; align-items: center; flex: 1; gap: 4px; flex-wrap: wrap;}
         .inline-group input[type="number"] { width: 45px; padding: 8px; text-align: center; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+        .inline-group .price-input { width: 48px; padding: 6px 4px; }
+        .inline-group select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; background-color: #f9f9f9; text-align: center;}
         
         .day-label { font-weight: bold; color: #2e7d32; margin-left: 8px; font-size: 0.95rem; width: 40px;}
         .btn-small { padding: 6px 12px; background: #555; color: white; border: none; border-radius: 4px; font-size: 0.9rem; cursor: pointer; font-weight: bold;}
@@ -81,6 +84,7 @@
         .btn { padding: 10px 15px; background: #2e7d32; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; }
         .btn-outline { background: white; color: #2e7d32; border: 1px solid #2e7d32; width: 100%; margin-bottom: 10px;}
         .btn-export { background: #1976d2; width: 100%; margin-bottom: 15px; font-weight: bold;}
+        .helper-text { font-size: 0.85rem; color: #1976d2; margin-bottom: 8px; display: block; font-weight: bold;}
 
         /* 名單列表區塊 */
         .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 5px;}
@@ -91,9 +95,9 @@
         .player-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; border-bottom: 1px solid #eee; }
         .player-item:last-child { border-bottom: none; }
         .player-name { font-weight: bold; flex: 1; font-size: 1.1rem;}
-        .player-controls { display: flex; align-items: center; gap: 6px; }
+        .player-controls { display: flex; align-items: center; gap: 8px; }
         select { padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.95rem; background-color: #f9f9f9;}
-        input[type="checkbox"] { width: 22px; height: 22px; accent-color: #2e7d32; margin: 0 4px;}
+        input[type="checkbox"] { width: 22px; height: 22px; accent-color: #2e7d32; margin: 0 5px;}
         .action-btn { color: #555; background: none; border: none; font-size: 1.5rem; padding: 0 5px; cursor: pointer; line-height: 1;}
         .btn-danger-full { background: white; color: #d32f2f; border: 1px solid #d32f2f; width: 100%; margin-top: 10px; }
 
@@ -113,16 +117,8 @@
         .btn-delete { background: #ffebee; color: #c62828; }
         .btn-cancel { background: #f5f5f5; color: #555; margin-bottom: 0;}
 
-        /* 底部作者標籤 */
-        .footer-credit {
-            text-align: center;
-            margin-top: 30px;
-            margin-bottom: 10px;
-            color: #888;
-            font-size: 0.9rem;
-            font-weight: bold;
-            letter-spacing: 1px;
-        }
+        /* 專屬簽名 */
+        .footer-signature { text-align: center; margin-top: 25px; font-size: 0.9rem; color: #888; font-weight: bold; letter-spacing: 1px;}
     </style>
 </head>
 <body>
@@ -146,6 +142,21 @@
         </div>
 
         <div class="info-row">
+            <span class="label">本日隊長</span>
+            <input type="text" id="captainName" value="Hueigo" placeholder="請輸入隊長姓名" oninput="saveAndRender()">
+        </div>
+        
+        <!-- 動態收費設定 (縮短文字) -->
+        <div class="info-row">
+            <span class="label">收費設定</span>
+            <div class="inline-group">
+                零打<input type="number" class="price-input" id="priceCash" value="250" oninput="saveAndRender()">
+                買卡<input type="number" class="price-input" id="priceCard" value="2200" oninput="saveAndRender()">
+                舊卡補價<input type="number" class="price-input" id="priceDiff" value="10" oninput="saveAndRender()">
+            </div>
+        </div>
+
+        <div class="info-row">
             <span class="label">日期</span>
             <input type="date" id="playDate" onchange="updateDay(); saveAndRender()">
             <span class="day-label" id="dayOfWeek"></span>
@@ -161,11 +172,22 @@
         <div class="info-row">
             <span class="label">場地數量</span>
             <div class="inline-group">
-                <input type="number" id="courtCount" value="3" min="1" oninput="generateCourtInputs()"> 面
+                <!-- 改為 select 讓手機直接彈出選單 -->
+                <select id="courtCount" onchange="generateCourtInputs()">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3" selected>3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                </select> 面
                 <button class="btn-small" onclick="toggleLabelType()">英/數</button>
             </div>
         </div>
-        <!-- 動態場地標號容器 (下拉選單) -->
         <div id="courtLabelsContainer"></div>
     </div>
 
@@ -195,8 +217,9 @@
     <div class="add-section">
         <button class="btn btn-outline" onclick="toggleBulk()">📋 展開/隱藏 LINE 批次匯入</button>
         <div id="bulkArea" style="display: none;">
-            <textarea id="bulkInput" placeholder="請直接貼上 LINE 接龍名單...&#10;例如：&#10;1. 姓名A&#10;2. 姓名B"></textarea>
-            <button class="btn" style="width: 100%; margin-bottom: 15px;" onclick="bulkImport()">批次匯入名單</button>
+            <span class="helper-text">💡 Android 手機可直接貼上「整篇接龍對話」，系統會自動過濾並抓取數字開頭的名單！</span>
+            <textarea id="bulkInput" placeholder="請直接貼上 LINE 訊息...&#10;系統會自動抓取例如：&#10;1. 姓名A&#10;2. 姓名B"></textarea>
+            <button class="btn" style="width: 100%; margin-bottom: 15px;" onclick="bulkImport()">智慧匯入名單</button>
         </div>
         
         <div class="add-box">
@@ -213,9 +236,9 @@
     <div class="player-list" id="playerList"></div>
 
     <button class="btn btn-danger-full" onclick="resetData()">⚠️ 重設表單 (清空所有資料)</button>
-
-    <!-- 底部署名 -->
-    <div class="footer-credit">Created By Hueigo</div>
+    
+    <!-- 專屬簽名 -->
+    <div class="footer-signature">Created By Hueigo</div>
 </div>
 
 <!-- 彈出管理選單 Modal -->
@@ -229,22 +252,7 @@
 </div>
 
 <script>
-    // 現場實收「現金」項目
-    const CASH_ITEMS = {
-        "現金": 250,
-        "舊卡補價": 10,
-        "買新卡": 2200
-    };
-
-    // 轉帳「匯款」項目 (不列入現場現金結算)
-    const TRANSFER_ITEMS = {
-        "零打匯款": 250,
-        "買卡匯款": 2200
-    };
-
-    // 下拉選單嚴格依序排列
     const STATUS_OPTIONS = ["季繳", "計次卡", "現金", "舊卡補價", "買新卡", "零打匯款", "買卡匯款", "請假", "缺席"];
-
     const numOptions = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
     const engOptions = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
@@ -254,38 +262,32 @@
 
     function getTodayString() {
         const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
+        return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     }
 
     function updateDay() {
         const dateVal = document.getElementById('playDate').value;
         if (dateVal) {
             const days = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
-            const d = new Date(dateVal);
-            document.getElementById('dayOfWeek').innerText = days[d.getDay()];
+            document.getElementById('dayOfWeek').innerText = days[new Date(dateVal).getDay()];
         }
     }
 
     function init() {
-        if (!localStorage.getItem('playDate_v12')) {
+        if (!localStorage.getItem('playDate_v15')) {
             document.getElementById('playDate').value = getTodayString();
         }
 
-        const fields = ['teamName', 'courtName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee'];
+        const fields = ['teamName', 'courtName', 'captainName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee', 'priceCash', 'priceCard', 'priceDiff'];
         fields.forEach(field => {
-            const saved = localStorage.getItem(field + '_v12');
-            if (saved !== null) {
-                document.getElementById(field).value = saved;
-            }
+            const saved = localStorage.getItem(field + '_v15');
+            if (saved !== null) document.getElementById(field).value = saved;
         });
 
-        const savedType = localStorage.getItem('labelType_v12');
+        const savedType = localStorage.getItem('labelType_v15');
         if (savedType) currentLabelType = savedType;
         
-        const savedLabels = localStorage.getItem('courtLabels_v12');
+        const savedLabels = localStorage.getItem('courtLabels_v15');
         if (savedLabels) {
             restoreCourtInputs(JSON.parse(savedLabels));
         } else {
@@ -294,42 +296,35 @@
 
         updateDay();
 
-        const savedData = localStorage.getItem('badmintonData_v12');
-        if (savedData) {
-            players = JSON.parse(savedData);
-        }
+        const savedData = localStorage.getItem('badmintonData_v15');
+        if (savedData) players = JSON.parse(savedData);
+        
         render();
     }
 
     function saveAndRender() {
-        const fields = ['teamName', 'courtName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee'];
+        const fields = ['teamName', 'courtName', 'captainName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee', 'priceCash', 'priceCard', 'priceDiff'];
         fields.forEach(field => {
-            localStorage.setItem(field + '_v12', document.getElementById(field).value);
+            localStorage.setItem(field + '_v15', document.getElementById(field).value);
         });
         
-        localStorage.setItem('labelType_v12', currentLabelType);
-        
+        localStorage.setItem('labelType_v15', currentLabelType);
         const labelSelects = document.querySelectorAll('.court-input');
-        const labelArr = Array.from(labelSelects).map(sel => sel.value);
-        localStorage.setItem('courtLabels_v12', JSON.stringify(labelArr));
-        
-        localStorage.setItem('badmintonData_v12', JSON.stringify(players));
+        localStorage.setItem('courtLabels_v15', JSON.stringify(Array.from(labelSelects).map(sel => sel.value)));
+        localStorage.setItem('badmintonData_v15', JSON.stringify(players));
         render();
     }
 
     function createCourtSelect(selectedValue) {
         const select = document.createElement('select');
         select.className = 'court-input';
-        
         const options = currentLabelType === 'num' ? numOptions : engOptions;
         options.forEach(opt => {
             const option = document.createElement('option');
-            option.value = opt;
-            option.innerText = opt;
+            option.value = opt; option.innerText = opt;
             if (opt === selectedValue) option.selected = true;
             select.appendChild(option);
         });
-        
         if (!options.includes(selectedValue)) select.value = options[0];
         select.onchange = saveAndRender;
         return select;
@@ -341,8 +336,7 @@
         container.innerHTML = '';
         const options = currentLabelType === 'num' ? numOptions : engOptions;
         for (let i = 0; i < count; i++) {
-            let val = options[i % options.length];
-            container.appendChild(createCourtSelect(val));
+            container.appendChild(createCourtSelect(options[i % options.length]));
         }
         saveAndRender();
     }
@@ -350,9 +344,7 @@
     function restoreCourtInputs(labelsArray) {
         const container = document.getElementById('courtLabelsContainer');
         container.innerHTML = '';
-        labelsArray.forEach(val => {
-            container.appendChild(createCourtSelect(val));
-        });
+        labelsArray.forEach(val => container.appendChild(createCourtSelect(val)));
     }
 
     function toggleLabelType() {
@@ -365,9 +357,8 @@
         document.getElementById('modalPlayerName').innerText = players[index].name;
         document.getElementById('actionModal').style.display = 'flex';
     }
-    function closeModal() {
-        document.getElementById('actionModal').style.display = 'none';
-    }
+    function closeModal() { document.getElementById('actionModal').style.display = 'none'; }
+    
     function actionEdit() {
         let newName = prompt("請輸入修改後的姓名：", players[currentActionIndex].name);
         if (newName && newName.trim() !== "") {
@@ -376,6 +367,7 @@
         }
         closeModal();
     }
+    
     function actionDelete() {
         if (confirm(`確定要將 [${players[currentActionIndex].name}] 從名單中刪除嗎？`)) {
             players.splice(currentActionIndex, 1);
@@ -393,21 +385,26 @@
         const listDiv = document.getElementById('playerList');
         listDiv.innerHTML = '';
         
-        let counts = { "現金": 0, "舊卡補價": 0, "買新卡": 0, "零打匯款": 0, "買卡匯款": 0 };
-        let amounts = { "現金": 0, "舊卡補價": 0, "買新卡": 0, "零打匯款": 0, "買卡匯款": 0 };
+        // 動態抓取目前設定的金額
+        const pCash = parseInt(document.getElementById('priceCash').value) || 250;
+        const pCard = parseInt(document.getElementById('priceCard').value) || 2200;
+        const pDiff = parseInt(document.getElementById('priceDiff').value) || 10;
+
+        // 定義需要收現的項目
+        const CASH_ITEMS = { "現金": pCash, "舊卡補價": pDiff, "買新卡": pCard };
+        // 定義匯款的項目（不列入現金結算，但標示金額用）
+        const WIRE_ITEMS = { "零打匯款": pCash, "買卡匯款": pCard };
+
+        let counts = { "現金": 0, "舊卡補價": 0, "買新卡": 0 };
+        let amounts = { "現金": 0, "舊卡補價": 0, "買新卡": 0 };
         let totalCashReceived = 0;
         let actualPlayerCount = 0; 
 
         players.forEach((p, index) => {
-            if (p.paid) {
-                if (CASH_ITEMS[p.type] !== undefined) {
-                    counts[p.type]++;
-                    amounts[p.type] += CASH_ITEMS[p.type];
-                    totalCashReceived += CASH_ITEMS[p.type]; // 只計入現場現金
-                } else if (TRANSFER_ITEMS[p.type] !== undefined) {
-                    counts[p.type]++;
-                    amounts[p.type] += TRANSFER_ITEMS[p.type]; // 匯款不計入現金
-                }
+            if (p.paid && CASH_ITEMS[p.type] !== undefined) {
+                counts[p.type]++;
+                amounts[p.type] += CASH_ITEMS[p.type];
+                totalCashReceived += CASH_ITEMS[p.type];
             }
             if (p.type !== "請假" && p.type !== "缺席") {
                 actualPlayerCount++;
@@ -429,9 +426,11 @@
             STATUS_OPTIONS.forEach(opt => {
                 const option = document.createElement('option');
                 option.value = opt;
+                // 自動套用動態金額標示
                 let priceTxt = '';
-                if (CASH_ITEMS[opt]) priceTxt = ` (${CASH_ITEMS[opt]})`;
-                else if (TRANSFER_ITEMS[opt]) priceTxt = ` (${TRANSFER_ITEMS[opt]})`;
+                if (CASH_ITEMS[opt] !== undefined) priceTxt = ` (${CASH_ITEMS[opt]})`;
+                if (WIRE_ITEMS[opt] !== undefined) priceTxt = ` (${WIRE_ITEMS[opt]})`;
+                
                 option.innerText = opt + priceTxt;
                 if (p.type === opt) { option.selected = true; hasCurrentType = true; }
                 select.appendChild(option);
@@ -445,7 +444,6 @@
                 select.appendChild(customOpt);
             }
 
-            // 文字輸入選項放在最後面
             const textOpt = document.createElement('option');
             textOpt.value = "文字輸入";
             textOpt.innerText = "✏️ 文字輸入...";
@@ -503,17 +501,10 @@
             }
         }
 
-        // 匯款提示字串 (有匯款才顯示)
-        let transferNotice = '';
-        if (counts["零打匯款"] > 0 || counts["買卡匯款"] > 0) {
-            transferNotice = `<br><span style="color:#0288d1; font-size:0.9rem;">[匯款] 零打 ${counts["零打匯款"]} 位 / 買卡 ${counts["買卡匯款"]} 位 (不計入現金)</span>`;
-        }
-
         document.getElementById('stats').innerHTML = `
-            現金繳費（250）<strong>${counts["現金"]}</strong> 位，共 ${amounts["現金"]} 元<br>
-            舊卡補價（10）<strong>${counts["舊卡補價"]}</strong> 位，共 ${amounts["舊卡補價"]} 元<br>
-            買新卡（2200）<strong>${counts["買新卡"]}</strong> 位，共 ${amounts["買新卡"]} 元
-            ${transferNotice}
+            現金繳費（${pCash}）<strong>${counts["現金"]}</strong> 位，共 ${amounts["現金"]} 元<br>
+            舊卡補價（${pDiff}）<strong>${counts["舊卡補價"]}</strong> 位，共 ${amounts["舊卡補價"]} 元<br>
+            買新卡（${pCard}）<strong>${counts["買新卡"]}</strong> 位，共 ${amounts["買新卡"]} 元
         `;
 
         const fee = parseInt(document.getElementById('laborFee').value) || 0;
@@ -522,6 +513,7 @@
 
     function generateReport() {
         const teamName = document.getElementById('teamName').value;
+        const captainName = document.getElementById('captainName').value;
         const playDate = document.getElementById('playDate').value;
         const dayOfWeek = document.getElementById('dayOfWeek').innerText;
         const courtName = document.getElementById('courtName').value;
@@ -530,31 +522,31 @@
         const courtCount = document.getElementById('courtCount').value;
         const fee = parseInt(document.getElementById('laborFee').value) || 0;
 
+        const pCash = parseInt(document.getElementById('priceCash').value) || 250;
+        const pCard = parseInt(document.getElementById('priceCard').value) || 2200;
+        const pDiff = parseInt(document.getElementById('priceDiff').value) || 10;
+        const CASH_ITEMS = { "現金": pCash, "舊卡補價": pDiff, "買新卡": pCard };
+
         const labelSelects = document.querySelectorAll('.court-input');
         const labelsArr = Array.from(labelSelects).map(sel => sel.value);
         const courtLabelsStr = labelsArr.join(', ');
 
-        let counts = { "現金": 0, "舊卡補價": 0, "買新卡": 0, "零打匯款": 0, "買卡匯款": 0 };
+        let counts = { "現金": 0, "舊卡補價": 0, "買新卡": 0 };
         let totalCashReceived = 0;
         let actualPlayerCount = 0;
         
         let playerListText = "";
 
         players.forEach((p, idx) => {
-            if (p.paid) {
-                if (CASH_ITEMS[p.type] !== undefined) {
-                    counts[p.type]++;
-                    totalCashReceived += CASH_ITEMS[p.type];
-                } else if (TRANSFER_ITEMS[p.type] !== undefined) {
-                    counts[p.type]++;
-                }
+            if (p.paid && CASH_ITEMS[p.type] !== undefined) {
+                counts[p.type]++;
+                totalCashReceived += CASH_ITEMS[p.type];
             }
             
             if (p.type !== "請假" && p.type !== "缺席") {
                 actualPlayerCount++;
                 let status = p.paid ? "✔已繳" : "❌未繳";
-                if (TRANSFER_ITEMS[p.type]) status = p.paid ? "✔已匯" : "❌未匯";
-                if (!CASH_ITEMS[p.type] && !TRANSFER_ITEMS[p.type]) status = "-"; 
+                if(!CASH_ITEMS[p.type]) status = "-"; 
                 playerListText += `${idx + 1}. ${p.name} (${p.type}) [${status}]\n`;
             } else {
                 playerListText += `${idx + 1}. ${p.name} (${p.type})\n`;
@@ -563,30 +555,24 @@
 
         const finalTotal = totalCashReceived - fee;
 
-        // 若有匯款，報表中多出一欄區塊
-        let transferSection = "";
-        if (counts["零打匯款"] > 0 || counts["買卡匯款"] > 0) {
-            transferSection = `\n=== 匯款明細 (不列入現金) ===\n零打匯款 (250)：${counts["零打匯款"]} 位\n買卡匯款 (2200)：${counts["買卡匯款"]} 位\n`;
-        }
-
         const report = 
 `【${teamName} - ${courtName} 結算報表】
+本日隊長：${captainName}
 日期：${playDate} ${dayOfWeek}
 時間：${startTime} - ${endTime}
 場地：${courtCount} 面 (編號：${courtLabelsStr})
 本日出席人數：${actualPlayerCount} 人
 
 === 當日現金結算 ===
-現金繳費 (250)：${counts["現金"]} 位
-舊卡補價 (10)：${counts["舊卡補價"]} 位
-買新卡 (2200)：${counts["買新卡"]} 位
+現金繳費 (${pCash})：${counts["現金"]} 位
+舊卡補價 (${pDiff})：${counts["舊卡補價"]} 位
+買新卡 (${pCard})：${counts["買新卡"]} 位
 勞務費扣抵：-${fee}
 -------------------
 本日現金總結算：${finalTotal} 元
-${transferSection}
+
 === 今日球友名單 ===
-${playerListText}
--- Created By Hueigo --`;
+${playerListText}`;
 
         document.getElementById('reportOutput').value = report;
         document.getElementById('reportArea').style.display = 'block';
@@ -623,26 +609,32 @@ ${playerListText}
         area.style.display = area.style.display === 'none' ? 'block' : 'none';
     }
 
+    // 升級版：智慧過濾批次匯入
     function bulkImport() {
         const text = document.getElementById('bulkInput').value;
         const lines = text.split('\n');
         let importedCount = 0;
 
         lines.forEach(line => {
-            let cleanName = line.replace(/^[0-9]+[\.、\)\s]+/, '').trim();
-            if (cleanName) {
-                players.push({ name: cleanName, type: "現金", paid: false });
-                importedCount++;
+            // 利用正規表達式，只抓取「開頭是數字」且「後面跟著點或空格等符號」的行
+            const match = line.match(/^\s*[0-9]+[\.、\)\s]+(.+)/);
+            if (match) {
+                // match[1] 就是去掉數字與符號後的純名字部分
+                let cleanName = match[1].trim();
+                if (cleanName) {
+                    players.push({ name: cleanName, type: "現金", paid: false });
+                    importedCount++;
+                }
             }
         });
 
         if (importedCount > 0) {
-            alert(`成功匯入 ${importedCount} 位球友！`);
+            alert(`成功過濾並匯入 ${importedCount} 位球友！`);
             document.getElementById('bulkInput').value = '';
             toggleBulk();
             saveAndRender();
         } else {
-            alert('沒有讀取到有效名單，請確認貼上的內容喔！');
+            alert('沒有讀取到符合「數字編號開頭」的有效名單，請確認貼上的內容喔！\n(格式範例： 1. 王大明)');
         }
     }
 
