@@ -30,9 +30,9 @@
             border-radius: 4px; font-size: 1rem; background-color: #f9f9f9; 
         }
         
-        /* 球隊與球場同一列橫排 */
-        .split-row { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
-        .split-item { display: flex; align-items: center; flex: 1; min-width: 0; }
+        /* 橫排設定 */
+        .split-row { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; }
+        .split-item { display: flex; align-items: center; min-width: 0; }
         .split-item .label { flex-shrink: 0; color: #555; font-weight: bold; font-size: 0.95rem; margin-right: 6px; white-space: nowrap;}
         .split-item input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; width: 100%; min-width: 0; box-sizing: border-box;}
 
@@ -130,23 +130,25 @@
 
     <!-- 場地與時間資訊 -->
     <div class="info-box">
+        <!-- 球場單獨一行 -->
+        <div class="info-row">
+            <span class="label">球場</span>
+            <input type="text" id="courtName" value="新店運動中心羽球場" oninput="saveAndRender()">
+        </div>
+        
+        <!-- 橫向合併：球隊與隊長 (比例配置為 1.5 : 1，讓隊長欄位短一點) -->
         <div class="split-row">
-            <div class="split-item">
+            <div class="split-item" style="flex: 1.5;">
                 <span class="label">球隊</span>
                 <input type="text" id="teamName" value="W00A00羽球隊" oninput="saveAndRender()">
             </div>
-            <div class="split-item">
-                <span class="label">球場</span>
-                <input type="text" id="courtName" value="新店運動中心羽球場" oninput="saveAndRender()">
+            <div class="split-item" style="flex: 1;">
+                <span class="label">本日隊長</span>
+                <input type="text" id="captainName" value="Hueigo" placeholder="姓名" oninput="saveAndRender()">
             </div>
         </div>
-
-        <div class="info-row">
-            <span class="label">本日隊長</span>
-            <input type="text" id="captainName" value="Hueigo" placeholder="請輸入隊長姓名" oninput="saveAndRender()">
-        </div>
         
-        <!-- 動態收費設定 (縮短文字) -->
+        <!-- 動態收費設定 -->
         <div class="info-row">
             <span class="label">收費設定</span>
             <div class="inline-group">
@@ -172,7 +174,6 @@
         <div class="info-row">
             <span class="label">場地數量</span>
             <div class="inline-group">
-                <!-- 改為 select 讓手機直接彈出選單 -->
                 <select id="courtCount" onchange="generateCourtInputs()">
                     <option value="1">1</option>
                     <option value="2">2</option>
@@ -274,20 +275,20 @@
     }
 
     function init() {
-        if (!localStorage.getItem('playDate_v15')) {
+        if (!localStorage.getItem('playDate_v16')) {
             document.getElementById('playDate').value = getTodayString();
         }
 
         const fields = ['teamName', 'courtName', 'captainName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee', 'priceCash', 'priceCard', 'priceDiff'];
         fields.forEach(field => {
-            const saved = localStorage.getItem(field + '_v15');
+            const saved = localStorage.getItem(field + '_v16');
             if (saved !== null) document.getElementById(field).value = saved;
         });
 
-        const savedType = localStorage.getItem('labelType_v15');
+        const savedType = localStorage.getItem('labelType_v16');
         if (savedType) currentLabelType = savedType;
         
-        const savedLabels = localStorage.getItem('courtLabels_v15');
+        const savedLabels = localStorage.getItem('courtLabels_v16');
         if (savedLabels) {
             restoreCourtInputs(JSON.parse(savedLabels));
         } else {
@@ -296,7 +297,7 @@
 
         updateDay();
 
-        const savedData = localStorage.getItem('badmintonData_v15');
+        const savedData = localStorage.getItem('badmintonData_v16');
         if (savedData) players = JSON.parse(savedData);
         
         render();
@@ -305,13 +306,13 @@
     function saveAndRender() {
         const fields = ['teamName', 'courtName', 'captainName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee', 'priceCash', 'priceCard', 'priceDiff'];
         fields.forEach(field => {
-            localStorage.setItem(field + '_v15', document.getElementById(field).value);
+            localStorage.setItem(field + '_v16', document.getElementById(field).value);
         });
         
-        localStorage.setItem('labelType_v15', currentLabelType);
+        localStorage.setItem('labelType_v16', currentLabelType);
         const labelSelects = document.querySelectorAll('.court-input');
-        localStorage.setItem('courtLabels_v15', JSON.stringify(Array.from(labelSelects).map(sel => sel.value)));
-        localStorage.setItem('badmintonData_v15', JSON.stringify(players));
+        localStorage.setItem('courtLabels_v16', JSON.stringify(Array.from(labelSelects).map(sel => sel.value)));
+        localStorage.setItem('badmintonData_v16', JSON.stringify(players));
         render();
     }
 
@@ -609,17 +610,14 @@ ${playerListText}`;
         area.style.display = area.style.display === 'none' ? 'block' : 'none';
     }
 
-    // 升級版：智慧過濾批次匯入
     function bulkImport() {
         const text = document.getElementById('bulkInput').value;
         const lines = text.split('\n');
         let importedCount = 0;
 
         lines.forEach(line => {
-            // 利用正規表達式，只抓取「開頭是數字」且「後面跟著點或空格等符號」的行
             const match = line.match(/^\s*[0-9]+[\.、\)\s]+(.+)/);
             if (match) {
-                // match[1] 就是去掉數字與符號後的純名字部分
                 let cleanName = match[1].trim();
                 if (cleanName) {
                     players.push({ name: cleanName, type: "現金", paid: false });
