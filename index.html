@@ -114,6 +114,7 @@
         .modal-content h3 { margin-top: 0; margin-bottom: 15px; color: #333; font-size: 1.3rem;}
         .modal-btn { width: 100%; padding: 12px; margin-bottom: 10px; font-size: 1.1rem; border-radius: 8px; border: none; cursor: pointer; font-weight: bold;}
         .btn-edit { background: #e3f2fd; color: #1565c0; }
+        .btn-order { background: #e8f5e9; color: #2e7d32; }
         .btn-delete { background: #ffebee; color: #c62828; }
         .btn-cancel { background: #f5f5f5; color: #555; margin-bottom: 0;}
 
@@ -128,15 +129,12 @@
         <h2>🏸 羽球暢打 - 收款小幫手</h2>
     </div>
 
-    <!-- 場地與時間資訊 -->
     <div class="info-box">
-        <!-- 球場單獨一行 -->
         <div class="info-row">
             <span class="label">球場</span>
             <input type="text" id="courtName" value="新店運動中心羽球場" oninput="saveAndRender()">
         </div>
         
-        <!-- 橫向合併：球隊與值日生 (比例配置為 1.5 : 1) -->
         <div class="split-row">
             <div class="split-item" style="flex: 1.5;">
                 <span class="label">球隊</span>
@@ -148,7 +146,6 @@
             </div>
         </div>
         
-        <!-- 動態收費設定 -->
         <div class="info-row">
             <span class="label">收費設定</span>
             <div class="inline-group">
@@ -192,10 +189,8 @@
         <div id="courtLabelsContainer"></div>
     </div>
 
-    <!-- 人數控管提示 -->
     <div id="capacityAlert" class="capacity-bar cap-safe"></div>
 
-    <!-- 財務結算 -->
     <div class="summary">
         <div class="summary-details" id="stats"></div>
         <div class="fee-box">
@@ -207,14 +202,12 @@
         </div>
     </div>
 
-    <!-- 報表匯出功能 -->
     <button class="btn btn-export" onclick="generateReport()">📄 產生給場主的結算報表</button>
     <div id="reportArea" style="display: none; background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <textarea id="reportOutput" style="height: 380px; margin-bottom: 10px; background: #f9f9f9;" readonly></textarea>
         <button class="btn" style="width: 100%; background: #e65100;" onclick="copyReport()">📋 一鍵複製文字</button>
     </div>
 
-    <!-- 新增與匯入區塊 -->
     <div class="add-section">
         <button class="btn btn-outline" onclick="toggleBulk()">📋 展開/隱藏 LINE 批次匯入</button>
         <div id="bulkArea" style="display: none;">
@@ -229,7 +222,6 @@
         </div>
     </div>
 
-    <!-- 名單列表 -->
     <div class="list-header">
         <h3>👥 今日球友名單</h3>
         <button class="btn-checkall" onclick="checkAll()">☑ 一鍵全部打勾</button>
@@ -238,15 +230,14 @@
 
     <button class="btn btn-danger-full" onclick="resetData()">⚠️ 重設表單 (清空所有資料)</button>
     
-    <!-- 專屬簽名 -->
     <div class="footer-signature">Created By Hueigo</div>
 </div>
 
-<!-- 彈出管理選單 Modal -->
 <div id="actionModal" class="modal-overlay" style="display:none;">
     <div class="modal-content">
         <h3 id="modalPlayerName">球友姓名</h3>
         <button class="modal-btn btn-edit" onclick="actionEdit()">✏️ 編輯姓名</button>
+        <button class="modal-btn btn-order" onclick="actionReorder()">🔀 變更排序</button>
         <button class="modal-btn btn-delete" onclick="actionDelete()">🗑️ 刪除此人</button>
         <button class="modal-btn btn-cancel" onclick="closeModal()">取消</button>
     </div>
@@ -275,20 +266,21 @@
     }
 
     function init() {
-        if (!localStorage.getItem('playDate_v17')) {
+        // 內部版本號升級至 v18
+        if (!localStorage.getItem('playDate_v18')) {
             document.getElementById('playDate').value = getTodayString();
         }
 
         const fields = ['teamName', 'courtName', 'captainName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee', 'priceCash', 'priceCard', 'priceDiff'];
         fields.forEach(field => {
-            const saved = localStorage.getItem(field + '_v17');
+            const saved = localStorage.getItem(field + '_v18');
             if (saved !== null) document.getElementById(field).value = saved;
         });
 
-        const savedType = localStorage.getItem('labelType_v17');
+        const savedType = localStorage.getItem('labelType_v18');
         if (savedType) currentLabelType = savedType;
         
-        const savedLabels = localStorage.getItem('courtLabels_v17');
+        const savedLabels = localStorage.getItem('courtLabels_v18');
         if (savedLabels) {
             restoreCourtInputs(JSON.parse(savedLabels));
         } else {
@@ -297,7 +289,7 @@
 
         updateDay();
 
-        const savedData = localStorage.getItem('badmintonData_v17');
+        const savedData = localStorage.getItem('badmintonData_v18');
         if (savedData) players = JSON.parse(savedData);
         
         render();
@@ -306,13 +298,13 @@
     function saveAndRender() {
         const fields = ['teamName', 'courtName', 'captainName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee', 'priceCash', 'priceCard', 'priceDiff'];
         fields.forEach(field => {
-            localStorage.setItem(field + '_v17', document.getElementById(field).value);
+            localStorage.setItem(field + '_v18', document.getElementById(field).value);
         });
         
-        localStorage.setItem('labelType_v17', currentLabelType);
+        localStorage.setItem('labelType_v18', currentLabelType);
         const labelSelects = document.querySelectorAll('.court-input');
-        localStorage.setItem('courtLabels_v17', JSON.stringify(Array.from(labelSelects).map(sel => sel.value)));
-        localStorage.setItem('badmintonData_v17', JSON.stringify(players));
+        localStorage.setItem('courtLabels_v18', JSON.stringify(Array.from(labelSelects).map(sel => sel.value)));
+        localStorage.setItem('badmintonData_v18', JSON.stringify(players));
         render();
     }
 
@@ -353,6 +345,7 @@
         generateCourtInputs(); 
     }
 
+    // Modal 控制
     function openModal(index) {
         currentActionIndex = index;
         document.getElementById('modalPlayerName').innerText = players[index].name;
@@ -360,6 +353,7 @@
     }
     function closeModal() { document.getElementById('actionModal').style.display = 'none'; }
     
+    // 編輯姓名
     function actionEdit() {
         let newName = prompt("請輸入修改後的姓名：", players[currentActionIndex].name);
         if (newName && newName.trim() !== "") {
@@ -368,7 +362,29 @@
         }
         closeModal();
     }
+
+    // 變更排序 (神級新功能)
+    function actionReorder() {
+        let maxNum = players.length;
+        let currentNum = currentActionIndex + 1;
+        let input = prompt(`請輸入 [${players[currentActionIndex].name}] 的新順序 (1 ~ ${maxNum})：\n目前順序為：${currentNum}`, currentNum);
+        
+        if (input !== null && input.trim() !== "") {
+            let newNum = parseInt(input);
+            if (!isNaN(newNum) && newNum >= 1 && newNum <= maxNum && newNum !== currentNum) {
+                let newIndex = newNum - 1;
+                // 將該球友從原位置抽出，並插入到新位置
+                let playerToMove = players.splice(currentActionIndex, 1)[0];
+                players.splice(newIndex, 0, playerToMove);
+                saveAndRender();
+            } else if (newNum !== currentNum) {
+                alert('輸入的數字無效，請輸入範圍內的正確數字！');
+            }
+        }
+        closeModal();
+    }
     
+    // 刪除此人
     function actionDelete() {
         if (confirm(`確定要將 [${players[currentActionIndex].name}] 從名單中刪除嗎？`)) {
             players.splice(currentActionIndex, 1);
@@ -377,11 +393,13 @@
         closeModal();
     }
 
+    // 全部打勾
     function checkAll() {
         players.forEach(p => p.paid = true);
         saveAndRender();
     }
 
+    // 畫面渲染
     function render() {
         const listDiv = document.getElementById('playerList');
         listDiv.innerHTML = '';
