@@ -143,6 +143,7 @@
         <h2>🏸 羽球暢打 - 收款小幫手</h2>
     </div>
 
+    <!-- 場地與時間資訊 -->
     <div class="info-box">
         <div class="info-row">
             <span class="label">球場</span>
@@ -205,6 +206,7 @@
 
     <div id="capacityAlert" class="capacity-bar cap-safe"></div>
 
+    <!-- 財務結算 -->
     <div class="summary">
         <div class="summary-details" id="stats"></div>
         <div class="fee-box">
@@ -216,15 +218,18 @@
         </div>
     </div>
 
+    <!-- 報表匯出功能 -->
     <button class="btn btn-export" onclick="generateReport()">📄 產生給場主的結算報表</button>
     <div id="reportArea" style="display: none; background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <textarea id="reportOutput" style="height: 420px; margin-bottom: 12px; background: #f9f9f9; font-family: monospace;" readonly></textarea>
-        <div style="display: flex; gap: 10px;">
+        <!-- 將按鈕區塊移到上方，方便產生報表後立刻點擊 -->
+        <div style="display: flex; gap: 10px; margin-bottom: 12px;">
             <button class="btn" style="flex: 1; background: #e65100; font-weight: bold;" onclick="copyReport()">📋 一鍵複製</button>
             <button class="btn" style="flex: 1; background: #2e7d32; font-weight: bold;" onclick="saveReportToHistory()">💾 儲存紀錄</button>
         </div>
+        <textarea id="reportOutput" style="height: 420px; margin-bottom: 0; background: #f9f9f9; font-family: monospace;" readonly></textarea>
     </div>
 
+    <!-- 新增與匯入區塊 -->
     <div class="add-section">
         <button class="btn btn-outline" onclick="toggleBulk()">📋 展開/隱藏 LINE 批次匯入</button>
         <div id="bulkArea" style="display: none;">
@@ -239,12 +244,14 @@
         </div>
     </div>
 
+    <!-- 名單列表 -->
     <div class="list-header">
         <h3>👥 今日球友名單</h3>
         <button class="btn-checkall" onclick="checkAll()">☑ 一鍵全部打勾</button>
     </div>
     <div class="player-list" id="playerList"></div>
 
+    <!-- 歷史紀錄區塊 -->
     <div class="history-section">
         <button class="btn btn-outline" style="margin-bottom: 0;" onclick="toggleHistory()">📚 展開/隱藏 歷史結算紀錄</button>
         <div id="historyArea" style="display: none; margin-top: 15px;">
@@ -257,6 +264,7 @@
     <div class="footer-signature"><span class="copy-symbol">©</span> Created By Hueigo</div>
 </div>
 
+<!-- 彈出管理選單 Modal -->
 <div id="actionModal" class="modal-overlay" style="display:none;">
     <div class="modal-content">
         <h3 id="modalPlayerName">球友姓名</h3>
@@ -291,21 +299,21 @@
     }
 
     function init() {
-        // 版本號升級至 v20 以防快取快照衝突
-        if (!localStorage.getItem('playDate_v20')) {
+        // 版本號升級至 v24 確保修改生效
+        if (!localStorage.getItem('playDate_v24')) {
             document.getElementById('playDate').value = getTodayString();
         }
 
         const fields = ['teamName', 'courtName', 'captainName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee', 'priceCash', 'priceCard', 'priceDiff'];
         fields.forEach(field => {
-            const saved = localStorage.getItem(field + '_v20');
+            const saved = localStorage.getItem(field + '_v24');
             if (saved !== null) document.getElementById(field).value = saved;
         });
 
-        const savedType = localStorage.getItem('labelType_v20');
+        const savedType = localStorage.getItem('labelType_v24');
         if (savedType) currentLabelType = savedType;
         
-        const savedLabels = localStorage.getItem('courtLabels_v20');
+        const savedLabels = localStorage.getItem('courtLabels_v24');
         if (savedLabels) {
             restoreCourtInputs(JSON.parse(savedLabels));
         } else {
@@ -314,10 +322,10 @@
 
         updateDay();
 
-        const savedData = localStorage.getItem('badmintonData_v20');
+        const savedData = localStorage.getItem('badmintonData_v24');
         if (savedData) players = JSON.parse(savedData);
 
-        const savedHistory = localStorage.getItem('history_v20');
+        const savedHistory = localStorage.getItem('history_v24');
         if (savedHistory) historyRecords = JSON.parse(savedHistory);
         
         render();
@@ -327,13 +335,13 @@
     function saveAndRender() {
         const fields = ['teamName', 'courtName', 'captainName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee', 'priceCash', 'priceCard', 'priceDiff'];
         fields.forEach(field => {
-            localStorage.setItem(field + '_v20', document.getElementById(field).value);
+            localStorage.setItem(field + '_v24', document.getElementById(field).value);
         });
         
-        localStorage.setItem('labelType_v20', currentLabelType);
+        localStorage.setItem('labelType_v24', currentLabelType);
         const labelSelects = document.querySelectorAll('.court-input');
-        localStorage.setItem('courtLabels_v20', JSON.stringify(Array.from(labelSelects).map(sel => sel.value)));
-        localStorage.setItem('badmintonData_v20', JSON.stringify(players));
+        localStorage.setItem('courtLabels_v24', JSON.stringify(Array.from(labelSelects).map(sel => sel.value)));
+        localStorage.setItem('badmintonData_v24', JSON.stringify(players));
         render();
     }
 
@@ -548,7 +556,6 @@
         document.getElementById('finalTotal').innerText = totalCashReceived - fee;
     }
 
-    // 升級：產生極具專業感的結算報表
     function generateReport() {
         const teamName = document.getElementById('teamName').value;
         const captainName = document.getElementById('captainName').value;
@@ -582,27 +589,26 @@
             let num = String(idx + 1).padStart(2, '0');
             
             if (p.type === "請假" || p.type === "缺席") {
-                playerListText += `❌ ${num}. ${p.name} (${p.type})\n`;
+                playerListText += `✖ ${num}. ${p.name} (${p.type})\n`;
             } else {
                 actualPlayerCount++;
                 if (CASH_ITEMS[p.type] !== undefined) {
                     if (p.paid) {
                         cashCounts[p.type]++;
                         totalCashReceived += CASH_ITEMS[p.type];
-                        playerListText += `🟢 ${num}. ${p.name} (${p.type === "現金" ? "零打" : p.type}) [已繳]\n`;
+                        playerListText += `✔ ${num}. ${p.name} (${p.type === "現金" ? "零打" : p.type}) [已繳]\n`;
                     } else {
-                        playerListText += `🟡 ${num}. ${p.name} (${p.type === "現金" ? "零打" : p.type}) [未繳]\n`;
+                        playerListText += `○ ${num}. ${p.name} (${p.type === "現金" ? "零打" : p.type}) [未繳]\n`;
                     }
                 } else if (WIRE_ITEMS[p.type] !== undefined) {
                     if (p.paid) {
                         wireCounts[p.type]++;
-                        playerListText += `🔵 ${num}. ${p.name} (${p.type}) [已匯]\n`;
+                        playerListText += `✔ ${num}. ${p.name} (${p.type}) [已匯]\n`;
                     } else {
-                        playerListText += `🟡 ${num}. ${p.name} (${p.type}) [未匯]\n`;
+                        playerListText += `○ ${num}. ${p.name} (${p.type}) [未匯]\n`;
                     }
                 } else {
-                    // 季繳、計次卡或特殊自訂文字
-                    playerListText += `🔹 ${num}. ${p.name} (${p.type})\n`;
+                    playerListText += `• ${num}. ${p.name} (${p.type})\n`;
                 }
             }
         });
@@ -636,11 +642,16 @@
 
 📝 【 今日球友名單 】
 ───────────────────────
-${playerListText}═══════════════════════`;
+${playerListText}═══════════════════════
+                    © Created By Hueigo`;
 
+        const reportArea = document.getElementById('reportArea');
         document.getElementById('reportOutput').value = report;
-        document.getElementById('reportArea').style.display = 'block';
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        reportArea.style.display = 'block';
+        
+        // 改善滑動邏輯：讓畫面停在報表區塊的最上方，而不是網頁最底部
+        const yOffset = reportArea.getBoundingClientRect().top + window.scrollY - 15;
+        window.scrollTo({ top: yOffset, behavior: 'smooth' });
     }
 
     function copyReport() {
@@ -676,7 +687,7 @@ ${playerListText}═════════════════════
             timestamp: new Date().getTime()
         });
 
-        localStorage.setItem('history_v20', JSON.stringify(historyRecords));
+        localStorage.setItem('history_v24', JSON.stringify(historyRecords));
         renderHistory();
         alert('✅ 已成功封存至歷史紀錄！');
     }
@@ -713,17 +724,19 @@ ${playerListText}═════════════════════
     }
 
     function viewHistory(index) {
+        const reportArea = document.getElementById('reportArea');
         document.getElementById('reportOutput').value = historyRecords[index].reportText;
-        document.getElementById('reportArea').style.display = 'block';
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        reportArea.style.display = 'block';
+        
+        // 改善滑動邏輯：讓畫面停在報表區塊的最上方
+        const yOffset = reportArea.getBoundingClientRect().top + window.scrollY - 15;
+        window.scrollTo({ top: yOffset, behavior: 'smooth' });
     }
-
-    document.getElementById('reportArea').style.display = 'block';
 
     function deleteHistory(index) {
         if (confirm('確定要刪除這筆歷史紀錄嗎？（刪除後無法復原喔）')) {
             historyRecords.splice(index, 1);
-            localStorage.setItem('history_v20', JSON.stringify(historyRecords));
+            localStorage.setItem('history_v24', JSON.stringify(historyRecords));
             renderHistory();
         }
     }
@@ -777,9 +790,9 @@ ${playerListText}═════════════════════
 
     function resetData() {
         if(confirm('確定要清空今日所有設定與名單嗎？\n(別擔心，已存入「歷史紀錄」的報表不會被刪除)')) {
-            const savedHistory = localStorage.getItem('history_v20');
+            const savedHistory = localStorage.getItem('history_v24');
             localStorage.clear();
-            if (savedHistory) localStorage.setItem('history_v20', savedHistory);
+            if (savedHistory) localStorage.setItem('history_v24', savedHistory);
             location.reload(); 
         }
     }
