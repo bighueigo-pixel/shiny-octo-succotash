@@ -126,12 +126,11 @@
         .btn-delete { background: #ffebee; color: #c62828; }
         .btn-cancel { background: #f5f5f5; color: #555; margin-bottom: 0;}
 
-        /* 專屬簽名樣式微調 */
+        /* 專屬簽名樣式 */
         .footer-signature { 
             text-align: center; margin-top: 25px; font-size: 0.95rem; color: #888; font-weight: bold; letter-spacing: 1px;
             display: flex; align-items: center; justify-content: center; gap: 4px;
         }
-        /* 讓 © 符號放大並對齊英文大寫字 */
         .footer-signature .copy-symbol {
             font-size: 1.35rem; line-height: 1; vertical-align: middle; margin-top: -1px;
         }
@@ -219,7 +218,7 @@
 
     <button class="btn btn-export" onclick="generateReport()">📄 產生給場主的結算報表</button>
     <div id="reportArea" style="display: none; background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <textarea id="reportOutput" style="height: 380px; margin-bottom: 12px; background: #f9f9f9;" readonly></textarea>
+        <textarea id="reportOutput" style="height: 420px; margin-bottom: 12px; background: #f9f9f9; font-family: monospace;" readonly></textarea>
         <div style="display: flex; gap: 10px;">
             <button class="btn" style="flex: 1; background: #e65100; font-weight: bold;" onclick="copyReport()">📋 一鍵複製</button>
             <button class="btn" style="flex: 1; background: #2e7d32; font-weight: bold;" onclick="saveReportToHistory()">💾 儲存紀錄</button>
@@ -292,20 +291,21 @@
     }
 
     function init() {
-        if (!localStorage.getItem('playDate_v19')) {
+        // 版本號升級至 v20 以防快取快照衝突
+        if (!localStorage.getItem('playDate_v20')) {
             document.getElementById('playDate').value = getTodayString();
         }
 
         const fields = ['teamName', 'courtName', 'captainName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee', 'priceCash', 'priceCard', 'priceDiff'];
         fields.forEach(field => {
-            const saved = localStorage.getItem(field + '_v19');
+            const saved = localStorage.getItem(field + '_v20');
             if (saved !== null) document.getElementById(field).value = saved;
         });
 
-        const savedType = localStorage.getItem('labelType_v19');
+        const savedType = localStorage.getItem('labelType_v20');
         if (savedType) currentLabelType = savedType;
         
-        const savedLabels = localStorage.getItem('courtLabels_v19');
+        const savedLabels = localStorage.getItem('courtLabels_v20');
         if (savedLabels) {
             restoreCourtInputs(JSON.parse(savedLabels));
         } else {
@@ -314,10 +314,10 @@
 
         updateDay();
 
-        const savedData = localStorage.getItem('badmintonData_v19');
+        const savedData = localStorage.getItem('badmintonData_v20');
         if (savedData) players = JSON.parse(savedData);
 
-        const savedHistory = localStorage.getItem('history_v19');
+        const savedHistory = localStorage.getItem('history_v20');
         if (savedHistory) historyRecords = JSON.parse(savedHistory);
         
         render();
@@ -327,13 +327,13 @@
     function saveAndRender() {
         const fields = ['teamName', 'courtName', 'captainName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee', 'priceCash', 'priceCard', 'priceDiff'];
         fields.forEach(field => {
-            localStorage.setItem(field + '_v19', document.getElementById(field).value);
+            localStorage.setItem(field + '_v20', document.getElementById(field).value);
         });
         
-        localStorage.setItem('labelType_v19', currentLabelType);
+        localStorage.setItem('labelType_v20', currentLabelType);
         const labelSelects = document.querySelectorAll('.court-input');
-        localStorage.setItem('courtLabels_v19', JSON.stringify(Array.from(labelSelects).map(sel => sel.value)));
-        localStorage.setItem('badmintonData_v19', JSON.stringify(players));
+        localStorage.setItem('courtLabels_v20', JSON.stringify(Array.from(labelSelects).map(sel => sel.value)));
+        localStorage.setItem('badmintonData_v20', JSON.stringify(players));
         render();
     }
 
@@ -548,6 +548,7 @@
         document.getElementById('finalTotal').innerText = totalCashReceived - fee;
     }
 
+    // 升級：產生極具專業感的結算報表
     function generateReport() {
         const teamName = document.getElementById('teamName').value;
         const captainName = document.getElementById('captainName').value;
@@ -562,54 +563,80 @@
         const pCash = parseInt(document.getElementById('priceCash').value) || 250;
         const pCard = parseInt(document.getElementById('priceCard').value) || 2200;
         const pDiff = parseInt(document.getElementById('priceDiff').value) || 10;
+        
         const CASH_ITEMS = { "現金": pCash, "舊卡補價": pDiff, "買新卡": pCard };
+        const WIRE_ITEMS = { "零打匯款": pCash, "買卡匯款": pCard };
 
         const labelSelects = document.querySelectorAll('.court-input');
         const labelsArr = Array.from(labelSelects).map(sel => sel.value);
         const courtLabelsStr = labelsArr.join(', ');
 
-        let counts = { "現金": 0, "舊卡補價": 0, "買新卡": 0 };
+        let cashCounts = { "現金": 0, "舊卡補價": 0, "買新卡": 0 };
+        let wireCounts = { "零打匯款": 0, "買卡匯款": 0 };
         let totalCashReceived = 0;
         let actualPlayerCount = 0;
         
         let playerListText = "";
 
         players.forEach((p, idx) => {
-            if (p.paid && CASH_ITEMS[p.type] !== undefined) {
-                counts[p.type]++;
-                totalCashReceived += CASH_ITEMS[p.type];
-            }
+            let num = String(idx + 1).padStart(2, '0');
             
-            if (p.type !== "請假" && p.type !== "缺席") {
-                actualPlayerCount++;
-                let status = p.paid ? "✔已繳" : "❌未繳";
-                if(!CASH_ITEMS[p.type]) status = "-"; 
-                playerListText += `${idx + 1}. ${p.name} (${p.type}) [${status}]\n`;
+            if (p.type === "請假" || p.type === "缺席") {
+                playerListText += `❌ ${num}. ${p.name} (${p.type})\n`;
             } else {
-                playerListText += `${idx + 1}. ${p.name} (${p.type})\n`;
+                actualPlayerCount++;
+                if (CASH_ITEMS[p.type] !== undefined) {
+                    if (p.paid) {
+                        cashCounts[p.type]++;
+                        totalCashReceived += CASH_ITEMS[p.type];
+                        playerListText += `🟢 ${num}. ${p.name} (${p.type === "現金" ? "零打" : p.type}) [已繳]\n`;
+                    } else {
+                        playerListText += `🟡 ${num}. ${p.name} (${p.type === "現金" ? "零打" : p.type}) [未繳]\n`;
+                    }
+                } else if (WIRE_ITEMS[p.type] !== undefined) {
+                    if (p.paid) {
+                        wireCounts[p.type]++;
+                        playerListText += `🔵 ${num}. ${p.name} (${p.type}) [已匯]\n`;
+                    } else {
+                        playerListText += `🟡 ${num}. ${p.name} (${p.type}) [未匯]\n`;
+                    }
+                } else {
+                    // 季繳、計次卡或特殊自訂文字
+                    playerListText += `🔹 ${num}. ${p.name} (${p.type})\n`;
+                }
             }
         });
 
         const finalTotal = totalCashReceived - fee;
 
         const report = 
-`【${teamName} - ${courtName} 結算報表】
-值日生：${captainName}
-日期：${playDate} ${dayOfWeek}
-時間：${startTime} - ${endTime}
+`═══════════════════════
+🏸 【${teamName}】 結算報表
+═══════════════════════
+📅 日期：${playDate} ${dayOfWeek}
+⏰ 時間：${startTime} - ${endTime}
+📍 球場：${courtName}
 場地：${courtCount} 面 (編號：${courtLabelsStr})
-本日出席人數：${actualPlayerCount} 人
+👤 值日生：${captainName}
+👥 出席人數：${actualPlayerCount} 人
 
-=== 當日現金結算 ===
-現金繳費 (${pCash})：${counts["現金"]} 位
-舊卡補價 (${pDiff})：${counts["舊卡補價"]} 位
-買新卡 (${pCard})：${counts["買新卡"]} 位
-勞務費扣抵：-${fee}
--------------------
-本日現金總結算：${finalTotal} 元
+💵 【 當日現金點交 】
+───────────────────────
+• 零打現金 (${pCash}) ─ ${cashCounts["現金"]} 位 ＝ $${cashCounts["現金"] * pCash} 元
+• 舊卡補價 (${pDiff}) ─ ${cashCounts["舊卡補價"]} 位 ＝ $${cashCounts["舊卡補價"] * pDiff} 元
+• 現場買卡 (${pCard}) ─ ${cashCounts["買新卡"]} 位 ＝ $${cashCounts["買新卡"] * pCard} 元
+• 值日生折抵 ──── 扣除 $${fee} 元
+───────────────────────
+💰 本日應收現金總計：${finalTotal} 元
 
-=== 今日球友名單 ===
-${playerListText}`;
+📱 【 雲端匯款紀錄 】
+───────────────────────
+• 零打匯款 (${pCash}) ─ ${wireCounts["零打匯款"]} 位 ＝ $${wireCounts["零打匯款"] * pCash} 元
+• 買卡匯款 (${pCard}) ─ ${wireCounts["買卡匯款"]} 位 ＝ $${wireCounts["買卡匯款"] * pCard} 元
+
+📝 【 今日球友名單 】
+───────────────────────
+${playerListText}═══════════════════════`;
 
         document.getElementById('reportOutput').value = report;
         document.getElementById('reportArea').style.display = 'block';
@@ -620,7 +647,6 @@ ${playerListText}`;
         const reportText = document.getElementById('reportOutput');
         reportText.select();
         reportText.setSelectionRange(0, 99999); 
-        
         if (navigator.clipboard) {
             navigator.clipboard.writeText(reportText.value).then(() => {
                 alert('✅ 結算報表已複製！\n現在可以直接去 LINE 貼上囉。');
@@ -634,7 +660,6 @@ ${playerListText}`;
     function saveReportToHistory() {
         const reportText = document.getElementById('reportOutput').value;
         if (!reportText) return;
-        
         const dateStr = document.getElementById('playDate').value;
         const teamName = document.getElementById('teamName').value;
 
@@ -651,7 +676,7 @@ ${playerListText}`;
             timestamp: new Date().getTime()
         });
 
-        localStorage.setItem('history_v19', JSON.stringify(historyRecords));
+        localStorage.setItem('history_v20', JSON.stringify(historyRecords));
         renderHistory();
         alert('✅ 已成功封存至歷史紀錄！');
     }
@@ -659,33 +684,26 @@ ${playerListText}`;
     function renderHistory() {
         const list = document.getElementById('historyList');
         list.innerHTML = '';
-        
         if (historyRecords.length === 0) {
             list.innerHTML = '<div style="text-align:center; color:#888; padding:10px;">目前還沒有任何紀錄喔</div>';
             return;
         }
-
         historyRecords.forEach((record, index) => {
             const item = document.createElement('div');
             item.className = 'history-item';
-            
             const title = document.createElement('div');
             title.className = 'history-item-title';
             title.innerText = `${record.date} - ${record.team}`;
-            
             const actions = document.createElement('div');
             actions.className = 'history-actions';
-            
             const viewBtn = document.createElement('button');
             viewBtn.className = 'btn-tiny btn-view';
             viewBtn.innerText = '查看';
             viewBtn.onclick = () => viewHistory(index);
-            
             const delBtn = document.createElement('button');
             delBtn.className = 'btn-tiny btn-del-history';
             delBtn.innerText = '刪除';
             delBtn.onclick = () => deleteHistory(index);
-            
             actions.appendChild(viewBtn);
             actions.appendChild(delBtn);
             item.appendChild(title);
@@ -695,16 +713,17 @@ ${playerListText}`;
     }
 
     function viewHistory(index) {
-        const record = historyRecords[index];
-        document.getElementById('reportOutput').value = record.reportText;
+        document.getElementById('reportOutput').value = historyRecords[index].reportText;
         document.getElementById('reportArea').style.display = 'block';
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 
+    document.getElementById('reportArea').style.display = 'block';
+
     function deleteHistory(index) {
         if (confirm('確定要刪除這筆歷史紀錄嗎？（刪除後無法復原喔）')) {
             historyRecords.splice(index, 1);
-            localStorage.setItem('history_v19', JSON.stringify(historyRecords));
+            localStorage.setItem('history_v20', JSON.stringify(historyRecords));
             renderHistory();
         }
     }
@@ -736,7 +755,6 @@ ${playerListText}`;
         const text = document.getElementById('bulkInput').value;
         const lines = text.split('\n');
         let importedCount = 0;
-
         lines.forEach(line => {
             const match = line.match(/^\s*[0-9]+[\.、\)\s]+(.+)/);
             if (match) {
@@ -747,7 +765,6 @@ ${playerListText}`;
                 }
             }
         });
-
         if (importedCount > 0) {
             alert(`成功過濾並匯入 ${importedCount} 位球友！`);
             document.getElementById('bulkInput').value = '';
@@ -760,9 +777,9 @@ ${playerListText}`;
 
     function resetData() {
         if(confirm('確定要清空今日所有設定與名單嗎？\n(別擔心，已存入「歷史紀錄」的報表不會被刪除)')) {
-            const savedHistory = localStorage.getItem('history_v19');
+            const savedHistory = localStorage.getItem('history_v20');
             localStorage.clear();
-            if (savedHistory) localStorage.setItem('history_v19', savedHistory);
+            if (savedHistory) localStorage.setItem('history_v20', savedHistory);
             location.reload(); 
         }
     }
