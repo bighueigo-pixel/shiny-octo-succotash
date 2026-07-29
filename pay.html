@@ -3,360 +3,802 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>揪團報名小幫手</title>
-    <!-- 引入將網頁轉為圖片的套件 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <title>羽球暢打 - 收款小幫手</title>
     <style>
-        body { font-family: sans-serif; padding: 15px; background-color: #f4f5f7; margin: 0; }
-        .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
-        h2 { margin-top: 0; color: #06C755; font-size: 20px; text-align: center; margin-bottom: 15px; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background: #f0f2f5; padding: 15px; margin: 0; color: #333;
+        }
+        .container { max-width: 500px; margin: 0 auto; padding-bottom: 30px; }
+        .header { 
+            background: #2e7d32; color: white; padding: 15px; 
+            border-radius: 8px; margin-bottom: 15px; text-align: center; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header h2 { margin: 0; font-size: 1.3rem; }
         
-        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
-        .full-width { grid-column: span 2; }
-        .flex-3-cols { display: flex; gap: 10px; }
-        .flex-3-cols > div { flex: 1; min-width: 0; }
+        /* 資訊區塊 */
+        .info-box {
+            background: white; padding: 15px; border-radius: 8px; 
+            margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+        }
+        .info-row { display: flex; align-items: center; margin-bottom: 12px; }
+        .info-row:last-child { margin-bottom: 0; }
+        .info-row .label { width: 75px; flex-shrink: 0; color: #555; font-weight: bold; font-size: 0.95rem; white-space: nowrap;}
+        .info-row input[type="text"], .info-row input[type="date"], .info-row input[type="time"] { 
+            flex: 1; padding: 8px; border: 1px solid #ccc; 
+            border-radius: 4px; font-size: 1rem; background-color: #f9f9f9; 
+        }
         
-        label { display: block; font-weight: bold; color: #444; font-size: 13px; margin-bottom: 4px; white-space: nowrap; }
-        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 15px; background-color: #fafafa; }
-        textarea { height: 70px; resize: none; }
-        
-        .hidden { display: none; }
-        .btn-primary { width: 100%; padding: 12px; background-color: #06C755; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-dark { width: 100%; padding: 12px; background-color: #333; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        #resultText { height: 120px; line-height: 1.4; background-color: #fff; }
-        .preview-text { font-size: 13px; color: #06C755; margin-top: 5px; font-weight: bold; }
+        /* 橫排設定 */
+        .split-row { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; }
+        .split-item { display: flex; align-items: center; min-width: 0; }
+        .split-item .label { flex-shrink: 0; color: #555; font-weight: bold; font-size: 0.95rem; margin-right: 6px; white-space: nowrap;}
+        .split-item input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; width: 100%; min-width: 0; box-sizing: border-box;}
 
-        /* --- 華麗圖卡的專屬設計 (隱藏在背景，擷取時才用) --- */
-        #captureArea {
-            position: absolute;
-            left: -9999px;
-            top: -9999px;
-            width: 400px;
-            background: #fff;
-            padding: 20px;
-            box-sizing: border-box;
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        /* 動態設定區縮小間距以防換行 */
+        .inline-group { display: flex; align-items: center; flex: 1; gap: 4px; flex-wrap: wrap;}
+        .inline-group input[type="number"] { width: 45px; padding: 8px; text-align: center; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+        .inline-group .price-input { width: 48px; padding: 6px 4px; }
+        .inline-group select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; background-color: #f9f9f9; text-align: center;}
+        
+        .day-label { font-weight: bold; color: #2e7d32; margin-left: 8px; font-size: 0.95rem; width: 40px;}
+        .btn-small { padding: 6px 12px; background: #555; color: white; border: none; border-radius: 4px; font-size: 0.9rem; cursor: pointer; font-weight: bold;}
+        
+        /* 動態場地標號區 */
+        #courtLabelsContainer { display: flex; flex-wrap: wrap; gap: 8px; padding-left: 75px; margin-bottom: 12px; margin-top: -6px; }
+        .court-input { 
+            width: 55px; padding: 6px; text-align: center; border: 1px solid #2e7d32; 
+            border-radius: 4px; font-size: 1.05rem; font-weight: bold; 
+            color: #2e7d32; background: #e8f5e9; cursor: pointer;
         }
-        .ticket-card {
-            background: #ffffff;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            overflow: hidden;
-            border: 1px solid #eee;
-        }
-        .ticket-header {
-            background: linear-gradient(135deg, #00C675, #008855);
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-        .ticket-header h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 1px; }
-        .ticket-header p { margin: 5px 0 0 0; font-size: 14px; opacity: 0.9; }
-        .ticket-body { padding: 20px; }
-        .info-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #ddd; padding: 10px 0; }
-        .info-label { color: #888; font-size: 14px; font-weight: bold; }
-        .info-value { color: #333; font-size: 15px; font-weight: bold; text-align: right; max-width: 65%; word-break: break-all; }
-        .name-list-box { background: #f8f9fa; border-radius: 8px; padding: 15px; margin-top: 15px; }
-        .name-list-title { color: #555; font-size: 14px; font-weight: bold; margin-bottom: 8px; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
-        .name-list-content { font-size: 15px; color: #333; line-height: 1.6; white-space: pre-wrap; }
-        .price-box { text-align: center; background: #FFF4E5; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #FFD8A8; }
-        .price-label { color: #D97706; font-size: 14px; font-weight: bold; }
-        .price-value { color: #E65100; font-size: 32px; font-weight: 900; margin: 5px 0; }
-        .ticket-footer { background: #f1f3f5; padding: 12px; text-align: center; color: #666; font-size: 12px; font-weight: bold; }
 
-        /* 顯示生成的圖片區域 */
-        #imageResultBox { text-align: center; padding: 15px; background: #fff8e1; border-radius: 10px; margin-top: 15px; border: 1px dashed #ffc107; }
-        #outputImage { max-width: 100%; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 10px; }
+        /* 人數控管提示 */
+        .capacity-bar {
+            text-align: center; padding: 10px; margin-bottom: 15px;
+            border-radius: 6px; font-weight: bold; font-size: 1.1rem;
+        }
+        .cap-safe { background: #e8f5e9; color: #2e7d32; }
+        .cap-warn { background: #fff3e0; color: #e65100; }
+        .cap-over { background: #ffebee; color: #c62828; }
+
+        /* 結算區塊 */
+        .summary { 
+            background: white; padding: 15px; border-radius: 8px; 
+            margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+        }
+        .summary-details { font-size: 1rem; color: #333; line-height: 1.8; }
+        .summary-details strong { color: #2e7d32; font-size: 1.1rem; }
+        .total-amount { 
+            font-size: 1.6rem; color: #d32f2f; font-weight: bold; 
+            text-align: right; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;
+        }
+        .fee-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; margin-top: 5px;}
+        .fee-box input { width: 60px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;}
+
+        /* 各種區塊共用樣式 */
+        .add-section, .history-section { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .add-box { display: flex; gap: 8px; margin-bottom: 10px; }
+        .add-box input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
+        textarea { width: 100%; height: 80px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; box-sizing: border-box; margin-bottom: 8px; font-family: inherit;}
+        .btn { padding: 10px 15px; background: #2e7d32; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; }
+        .btn-outline { background: white; color: #2e7d32; border: 1px solid #2e7d32; width: 100%; margin-bottom: 10px;}
+        .btn-export { background: #1976d2; width: 100%; margin-bottom: 15px; font-weight: bold;}
+        .helper-text { font-size: 0.85rem; color: #1976d2; margin-bottom: 8px; display: block; font-weight: bold;}
+
+        /* 歷史紀錄列表 */
+        .history-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;}
+        .history-item-title { font-weight: bold; color: #333; flex: 1; font-size: 0.95rem; line-height: 1.4;}
+        .history-actions { display: flex; gap: 5px; }
+        .btn-tiny { padding: 6px 10px; border: none; border-radius: 4px; font-size: 0.85rem; cursor: pointer; color: white; font-weight: bold;}
+        .btn-view { background: #0288d1; }
+        .btn-del-history { background: #d32f2f; }
+
+        /* 名單列表區塊 */
+        .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 5px;}
+        .list-header h3 { margin: 0; font-size: 1.1rem; color: #333;}
+        .btn-checkall { background: #0288d1; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.9rem; cursor: pointer; font-weight: bold;}
+        
+        .player-list { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden; margin-bottom: 20px;}
+        .player-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; border-bottom: 1px solid #eee; }
+        .player-item:last-child { border-bottom: none; }
+        .player-name { font-weight: bold; flex: 1; font-size: 1.1rem;}
+        .player-controls { display: flex; align-items: center; gap: 8px; }
+        select { padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.95rem; background-color: #f9f9f9;}
+        input[type="checkbox"] { width: 22px; height: 22px; accent-color: #2e7d32; margin: 0 5px;}
+        .action-btn { color: #555; background: none; border: none; font-size: 1.5rem; padding: 0 5px; cursor: pointer; line-height: 1;}
+        .btn-danger-full { background: white; color: #d32f2f; border: 1px solid #d32f2f; width: 100%; margin-top: 10px; font-weight: bold; }
+
+        /* 彈出管理選單 Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: flex; justify-content: center;
+            align-items: center; z-index: 1000;
+        }
+        .modal-content {
+            background: white; padding: 20px; border-radius: 12px; width: 80%;
+            max-width: 300px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .modal-content h3 { margin-top: 0; margin-bottom: 15px; color: #333; font-size: 1.3rem;}
+        .modal-btn { width: 100%; padding: 12px; margin-bottom: 10px; font-size: 1.1rem; border-radius: 8px; border: none; cursor: pointer; font-weight: bold;}
+        .btn-edit { background: #e3f2fd; color: #1565c0; }
+        .btn-order { background: #e8f5e9; color: #2e7d32; }
+        .btn-delete { background: #ffebee; color: #c62828; }
+        .btn-cancel { background: #f5f5f5; color: #555; margin-bottom: 0;}
+
+        /* 專屬簽名樣式 */
+        .footer-signature { 
+            text-align: center; margin-top: 25px; font-size: 0.95rem; color: #888; font-weight: bold; letter-spacing: 1px;
+            display: flex; align-items: center; justify-content: center; gap: 4px;
+        }
+        .footer-signature .copy-symbol {
+            font-size: 1.35rem; line-height: 1; vertical-align: middle; margin-top: -1px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h2>📝 揪團報名小幫手</h2>
+<div class="container">
+    <div class="header">
+        <h2>🏸 羽球暢打 - 收款小幫手</h2>
+    </div>
+
+    <!-- 場地與時間資訊 -->
+    <div class="info-box">
+        <div class="info-row">
+            <span class="label">球場</span>
+            <input type="text" id="courtName" value="新店運動中心羽球場" oninput="saveAndRender()">
+        </div>
         
-        <div class="grid-container">
-            <!-- 欄位保持與上一版相同 -->
-            <div class="full-width flex-3-cols">
-                <div><label>日期</label><input type="date" id="eventDate" style="padding-left: 2px; padding-right: 2px;"></div>
-                <div><label>開始</label><input type="time" id="startTime" style="padding-left: 2px; padding-right: 2px;"></div>
-                <div><label>結束</label><input type="time" id="endTime" style="padding-left: 2px; padding-right: 2px;"></div>
+        <div class="split-row">
+            <div class="split-item" style="flex: 1.5;">
+                <span class="label">球隊</span>
+                <input type="text" id="teamName" value="W00A00羽球隊" oninput="saveAndRender()">
             </div>
-
-            <div>
-                <label>球聚種類</label>
-                <select id="sportType" onchange="toggleCustomSport()">
-                    <option value="匹克球" selected>匹克球</option>
-                    <option value="羽球">羽球</option>
-                    <option value="保齡球">保齡球</option>
-                    <option value="籃球">籃球</option>
-                    <option value="桌球">桌球</option>
-                    <option value="撞球">撞球</option>
-                    <option value="custom">其他 (輸入)</option>
-                </select>
+            <div class="split-item" style="flex: 1;">
+                <span class="label">值日生</span>
+                <input type="text" id="captainName" value="Hueigo" placeholder="姓名" oninput="saveAndRender()">
             </div>
-            <div><label>主揪值日生</label><input type="text" id="host" placeholder="例如: 小明"></div>
-            <div id="customSportBox" class="full-width hidden"><input type="text" id="customSport" placeholder="請輸入自訂項目名稱"></div>
-
-            <div>
-                <label>場地名稱</label>
-                <select id="venueSelect" onchange="autoFillAddress()">
-                    <option value="新羽力羽球俱樂部5號場">新羽力羽球俱樂部5號場</option>
-                    <option value="易羽球館">易羽球館</option>
-                    <option value="小碧潭京站美食廣場5F">小碧潭京站美食廣場5F</option>
-                    <option value="custom">自訂場地 (輸入)</option>
-                </select>
-            </div>
-            <div><label>地址</label><input type="text" id="address" placeholder="自動帶入"></div>
-            <div id="customVenueBox" class="full-width hidden"><input type="text" id="customVenue" placeholder="請輸入自訂場地名稱"></div>
-
-            <div><label>總場地費 ($)</label><input type="number" id="courtFee" placeholder="例: 1200"></div>
-            <div><label>器材/雜費 ($)</label><input type="number" id="itemFee" placeholder="無則填0"></div>
-
-            <div>
-                <label>預計滿團人數</label>
-                <select id="maxPeopleSelect"></select>
-            </div>
-            <div>
-                <label>目前報名人數</label>
-                <select id="peopleSelect" onchange="toggleCustomPeople()"></select>
-                <input type="number" id="customPeople" class="hidden" placeholder="請輸入" style="margin-top:5px;">
-            </div>
-
-            <div class="full-width">
-                <label>智慧參加名單 (貼上後自動排版與除錯)</label>
-                <textarea id="participants" placeholder="可直接貼上帶有數字的名單，系統會自動淨化" oninput="autoCountParticipants()"></textarea>
-                <div id="parsedNamesDisplay" class="preview-text"></div>
+        </div>
+        
+        <div class="info-row">
+            <span class="label">收費設定</span>
+            <div class="inline-group">
+                零打<input type="number" class="price-input" id="priceCash" value="250" oninput="saveAndRender()">
+                買卡<input type="number" class="price-input" id="priceCard" value="2200" oninput="saveAndRender()">
+                舊卡補價<input type="number" class="price-input" id="priceDiff" value="10" oninput="saveAndRender()">
             </div>
         </div>
 
-        <!-- 按鈕文字改為產生圖卡 -->
-        <button class="btn-primary" onclick="generateReportAndImage()">🎨 一鍵產生華麗報表圖卡</button>
+        <div class="info-row">
+            <span class="label">日期</span>
+            <input type="date" id="playDate" onchange="updateDay(); saveAndRender()">
+            <span class="day-label" id="dayOfWeek"></span>
+        </div>
+        <div class="info-row">
+            <span class="label">場租時間</span>
+            <div class="inline-group" style="flex-wrap: nowrap;">
+                <input type="time" id="startTime" value="14:00" onchange="saveAndRender()"> 
+                <span style="color:#555; font-weight:bold;">~</span> 
+                <input type="time" id="endTime" value="16:00" onchange="saveAndRender()">
+            </div>
+        </div>
+        <div class="info-row">
+            <span class="label">場地數量</span>
+            <div class="inline-group">
+                <select id="courtCount" onchange="generateCourtInputs()">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3" selected>3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                </select> 面
+                <button class="btn-small" onclick="toggleLabelType()">英/數</button>
+            </div>
+        </div>
+        <div id="courtLabelsContainer"></div>
     </div>
 
-    <!-- 圖片顯示區塊 -->
-    <div id="imageResultBox" class="hidden">
-        <h3 style="margin-top: 0; color: #E65100;">✨ 您的專屬圖卡已產生！</h3>
-        <p style="font-size: 14px; color: #555; margin-bottom: 5px;">👇 <b>手機操作方式</b>：請「長按」下方圖片 ➔ 選擇「複製」或「儲存圖片」 ➔ 接著到 LINE 貼上即可！</p>
-        <img id="outputImage" src="" alt="生成的報表圖卡">
-    </div>
+    <div id="capacityAlert" class="capacity-bar cap-safe"></div>
 
-    <!-- 保留文字連結，以備不時之需 -->
-    <div class="card" style="margin-top: 15px;">
-        <label>若想附上可點擊的地圖連結，可複製下方純文字：</label>
-        <textarea id="resultText" readonly></textarea>
-        <button class="btn-dark" onclick="copyText()">複製純文字</button>
-    </div>
-
-    <!-- 隱藏的圖卡渲染區 (供 html2canvas 拍照用) -->
-    <div id="captureArea">
-        <div class="ticket-card">
-            <div class="ticket-header">
-                <h1 id="imgTitle">8月8日匹克球揪團</h1>
-                <p id="imgTime">⏰ 14:00 ~ 16:00</p>
-            </div>
-            <div class="ticket-body">
-                <div class="info-row">
-                    <span class="info-label">👤 主揪值日生</span>
-                    <span class="info-value" id="imgHost">小明</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">📍 場地名稱</span>
-                    <span class="info-value" id="imgVenue">場地</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">🗺️ 場地地址</span>
-                    <span class="info-value" id="imgAddress">地址</span>
-                </div>
-                
-                <div class="name-list-box">
-                    <div class="name-list-title" id="imgPeopleCount">👥 參加名單 (8/8人)</div>
-                    <div class="name-list-content" id="imgNameList">1. 小明<br>2. 小華</div>
-                </div>
-
-                <div class="price-box">
-                    <div class="price-label">💰 本次每人均攤費用</div>
-                    <div class="price-value" id="imgPerPerson">$150</div>
-                    <div style="font-size: 12px; color: #888;" id="imgFeeDetail">場地 $1200 / 雜費 $0</div>
-                </div>
-            </div>
-            <div class="ticket-footer">
-                🙏 感謝參與，請將費用交給值日生喔！
-            </div>
+    <!-- 財務結算 -->
+    <div class="summary">
+        <div class="summary-details" id="stats"></div>
+        <div class="fee-box">
+            <span>勞務費（折抵）：</span>
+            <input type="number" id="laborFee" value="200" oninput="saveAndRender()">
+        </div>
+        <div class="total-amount">
+            本日現金結算：<span id="finalTotal">0</span> 元
         </div>
     </div>
 
-    <script>
-        const venueData = {
-            "新羽力羽球俱樂部5號場": "新北市新店區安康路二段295-3號",
-            "易羽球館": "新北市新店區安泰路58號之1",
-            "小碧潭京站美食廣場5F": "新北市新店區中央路157號5樓"
-        };
+    <!-- 報表匯出功能 -->
+    <button class="btn btn-export" onclick="generateReport()">📄 產生給場主的結算報表</button>
+    <div id="reportArea" style="display: none; background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <!-- 將按鈕區塊移到上方，方便產生報表後立刻點擊 -->
+        <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+            <button class="btn" style="flex: 1; background: #e65100; font-weight: bold;" onclick="copyReport()">📋 一鍵複製</button>
+            <button class="btn" style="flex: 1; background: #2e7d32; font-weight: bold;" onclick="saveReportToHistory()">💾 儲存紀錄</button>
+        </div>
+        <textarea id="reportOutput" style="height: 420px; margin-bottom: 0; background: #f9f9f9; font-family: monospace;" readonly></textarea>
+    </div>
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const now = new Date();
-            const localISOTime = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString();
-            document.getElementById('eventDate').value = localISOTime.split('T')[0];
-            
-            document.getElementById('startTime').value = '14:00';
-            document.getElementById('endTime').value = '16:00';
+    <!-- 新增與匯入區塊 -->
+    <div class="add-section">
+        <button class="btn btn-outline" onclick="toggleBulk()">📋 展開/隱藏 LINE 批次匯入</button>
+        <div id="bulkArea" style="display: none;">
+            <span class="helper-text">💡 Android 手機可直接貼上「整篇接龍對話」，系統會自動過濾並抓取數字開頭的名單！</span>
+            <textarea id="bulkInput" placeholder="請直接貼上 LINE 訊息...&#10;系統會自動抓取例如：&#10;1. 姓名A&#10;2. 姓名B"></textarea>
+            <button class="btn" style="width: 100%; margin-bottom: 15px;" onclick="bulkImport()">智慧匯入名單</button>
+        </div>
+        
+        <div class="add-box">
+            <input type="text" id="newName" placeholder="手動輸入單筆球友姓名">
+            <button class="btn" onclick="addPlayer()">新增</button>
+        </div>
+    </div>
 
-            const maxPeopleSelect = document.getElementById('maxPeopleSelect');
-            for (let i = 1; i <= 24; i++) {
-                let selected = (i === 8) ? "selected" : "";
-                maxPeopleSelect.innerHTML += `<option value="${i}" ${selected}>${i} 人</option>`;
-            }
+    <!-- 名單列表 -->
+    <div class="list-header">
+        <h3>👥 今日球友名單</h3>
+        <button class="btn-checkall" onclick="checkAll()">☑ 一鍵全部打勾</button>
+    </div>
+    <div class="player-list" id="playerList"></div>
 
-            const peopleSelect = document.getElementById('peopleSelect');
-            for (let i = 1; i <= 14; i++) {
-                peopleSelect.innerHTML += `<option value="${i}">${i} 人</option>`;
-            }
-            peopleSelect.innerHTML += `<option value="custom">15人以上 (自行輸入)</option>`;
+    <!-- 歷史紀錄區塊 -->
+    <div class="history-section">
+        <button class="btn btn-outline" style="margin-bottom: 0;" onclick="toggleHistory()">📚 展開/隱藏 歷史結算紀錄</button>
+        <div id="historyArea" style="display: none; margin-top: 15px;">
+            <div id="historyList"></div>
+        </div>
+    </div>
 
-            autoFillAddress();
+    <button class="btn btn-danger-full" onclick="resetData()">⚠️ 重設表單 (清空今日所有資料)</button>
+    
+    <div class="footer-signature"><span class="copy-symbol">©</span> Created By Hueigo</div>
+</div>
+
+<!-- 彈出管理選單 Modal -->
+<div id="actionModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+        <h3 id="modalPlayerName">球友姓名</h3>
+        <button class="modal-btn btn-edit" onclick="actionEdit()">✏️ 編輯姓名</button>
+        <button class="modal-btn btn-order" onclick="actionReorder()">🔀 變更排序</button>
+        <button class="modal-btn btn-delete" onclick="actionDelete()">🗑️ 刪除此人</button>
+        <button class="modal-btn btn-cancel" onclick="closeModal()">取消</button>
+    </div>
+</div>
+
+<script>
+    const STATUS_OPTIONS = ["季繳", "計次卡", "現金", "舊卡補價", "買新卡", "零打匯款", "買卡匯款", "請假", "缺席"];
+    const numOptions = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+    const engOptions = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+
+    let players = [];
+    let historyRecords = [];
+    let currentLabelType = 'num'; 
+    let currentActionIndex = -1; 
+
+    function getTodayString() {
+        const today = new Date();
+        return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    }
+
+    function updateDay() {
+        const dateVal = document.getElementById('playDate').value;
+        if (dateVal) {
+            const days = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+            document.getElementById('dayOfWeek').innerText = days[new Date(dateVal).getDay()];
+        }
+    }
+
+    function init() {
+        // 版本號升級至 v24 確保修改生效
+        if (!localStorage.getItem('playDate_v24')) {
+            document.getElementById('playDate').value = getTodayString();
+        }
+
+        const fields = ['teamName', 'courtName', 'captainName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee', 'priceCash', 'priceCard', 'priceDiff'];
+        fields.forEach(field => {
+            const saved = localStorage.getItem(field + '_v24');
+            if (saved !== null) document.getElementById(field).value = saved;
         });
 
-        function toggleCustomSport() {
-            const select = document.getElementById('sportType');
-            const box = document.getElementById('customSportBox');
-            if (select.value === 'custom') box.classList.remove('hidden');
-            else box.classList.add('hidden');
+        const savedType = localStorage.getItem('labelType_v24');
+        if (savedType) currentLabelType = savedType;
+        
+        const savedLabels = localStorage.getItem('courtLabels_v24');
+        if (savedLabels) {
+            restoreCourtInputs(JSON.parse(savedLabels));
+        } else {
+            generateCourtInputs();
         }
 
-        function autoFillAddress() {
-            const select = document.getElementById('venueSelect');
-            const box = document.getElementById('customVenueBox');
-            const addressInput = document.getElementById('address');
+        updateDay();
+
+        const savedData = localStorage.getItem('badmintonData_v24');
+        if (savedData) players = JSON.parse(savedData);
+
+        const savedHistory = localStorage.getItem('history_v24');
+        if (savedHistory) historyRecords = JSON.parse(savedHistory);
+        
+        render();
+        renderHistory();
+    }
+
+    function saveAndRender() {
+        const fields = ['teamName', 'courtName', 'captainName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee', 'priceCash', 'priceCard', 'priceDiff'];
+        fields.forEach(field => {
+            localStorage.setItem(field + '_v24', document.getElementById(field).value);
+        });
+        
+        localStorage.setItem('labelType_v24', currentLabelType);
+        const labelSelects = document.querySelectorAll('.court-input');
+        localStorage.setItem('courtLabels_v24', JSON.stringify(Array.from(labelSelects).map(sel => sel.value)));
+        localStorage.setItem('badmintonData_v24', JSON.stringify(players));
+        render();
+    }
+
+    function createCourtSelect(selectedValue) {
+        const select = document.createElement('select');
+        select.className = 'court-input';
+        const options = currentLabelType === 'num' ? numOptions : engOptions;
+        options.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt; option.innerText = opt;
+            if (opt === selectedValue) option.selected = true;
+            select.appendChild(option);
+        });
+        if (!options.includes(selectedValue)) select.value = options[0];
+        select.onchange = saveAndRender;
+        return select;
+    }
+
+    function generateCourtInputs() {
+        const count = parseInt(document.getElementById('courtCount').value) || 1;
+        const container = document.getElementById('courtLabelsContainer');
+        container.innerHTML = '';
+        const options = currentLabelType === 'num' ? numOptions : engOptions;
+        for (let i = 0; i < count; i++) {
+            container.appendChild(createCourtSelect(options[i % options.length]));
+        }
+        saveAndRender();
+    }
+
+    function restoreCourtInputs(labelsArray) {
+        const container = document.getElementById('courtLabelsContainer');
+        container.innerHTML = '';
+        labelsArray.forEach(val => container.appendChild(createCourtSelect(val)));
+    }
+
+    function toggleLabelType() {
+        currentLabelType = currentLabelType === 'num' ? 'eng' : 'num';
+        generateCourtInputs(); 
+    }
+
+    function openModal(index) {
+        currentActionIndex = index;
+        document.getElementById('modalPlayerName').innerText = players[index].name;
+        document.getElementById('actionModal').style.display = 'flex';
+    }
+    function closeModal() { document.getElementById('actionModal').style.display = 'none'; }
+    
+    function actionEdit() {
+        let newName = prompt("請輸入修改後的姓名：", players[currentActionIndex].name);
+        if (newName && newName.trim() !== "") {
+            players[currentActionIndex].name = newName.trim();
+            saveAndRender();
+        }
+        closeModal();
+    }
+
+    function actionReorder() {
+        let maxNum = players.length;
+        let currentNum = currentActionIndex + 1;
+        let input = prompt(`請輸入 [${players[currentActionIndex].name}] 的新順序 (1 ~ ${maxNum})：\n目前順序為：${currentNum}`, currentNum);
+        
+        if (input !== null && input.trim() !== "") {
+            let newNum = parseInt(input);
+            if (!isNaN(newNum) && newNum >= 1 && newNum <= maxNum && newNum !== currentNum) {
+                let newIndex = newNum - 1;
+                let playerToMove = players.splice(currentActionIndex, 1)[0];
+                players.splice(newIndex, 0, playerToMove);
+                saveAndRender();
+            } else if (newNum !== currentNum) {
+                alert('輸入的數字無效，請輸入範圍內的正確數字！');
+            }
+        }
+        closeModal();
+    }
+    
+    function actionDelete() {
+        if (confirm(`確定要將 [${players[currentActionIndex].name}] 從名單中刪除嗎？`)) {
+            players.splice(currentActionIndex, 1);
+            saveAndRender();
+        }
+        closeModal();
+    }
+
+    function checkAll() {
+        players.forEach(p => p.paid = true);
+        saveAndRender();
+    }
+
+    function render() {
+        const listDiv = document.getElementById('playerList');
+        listDiv.innerHTML = '';
+        
+        const pCash = parseInt(document.getElementById('priceCash').value) || 250;
+        const pCard = parseInt(document.getElementById('priceCard').value) || 2200;
+        const pDiff = parseInt(document.getElementById('priceDiff').value) || 10;
+
+        const CASH_ITEMS = { "現金": pCash, "舊卡補價": pDiff, "買新卡": pCard };
+        const WIRE_ITEMS = { "零打匯款": pCash, "買卡匯款": pCard };
+
+        let counts = { "現金": 0, "舊卡補價": 0, "買新卡": 0 };
+        let amounts = { "現金": 0, "舊卡補價": 0, "買新卡": 0 };
+        let totalCashReceived = 0;
+        let actualPlayerCount = 0; 
+
+        players.forEach((p, index) => {
+            if (p.paid && CASH_ITEMS[p.type] !== undefined) {
+                counts[p.type]++;
+                amounts[p.type] += CASH_ITEMS[p.type];
+                totalCashReceived += CASH_ITEMS[p.type];
+            }
+            if (p.type !== "請假" && p.type !== "缺席") {
+                actualPlayerCount++;
+            }
+
+            const item = document.createElement('div');
+            item.className = 'player-item';
             
-            if (select.value === 'custom') {
-                box.classList.remove('hidden');
-                addressInput.value = '';
-            } else {
-                box.classList.add('hidden');
-                if (venueData[select.value] !== undefined) {
-                    addressInput.value = venueData[select.value];
-                }
-            }
-        }
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'player-name';
+            nameSpan.innerText = `${index + 1}. ${p.name}`;
 
-        function toggleCustomPeople() {
-            const select = document.getElementById('peopleSelect');
-            const customInput = document.getElementById('customPeople');
-            if (select.value === 'custom') customInput.classList.remove('hidden');
-            else customInput.classList.add('hidden');
-        }
+            const controlsDiv = document.createElement('div');
+            controlsDiv.className = 'player-controls';
 
-        function getCleanedNames() {
-            const text = document.getElementById('participants').value;
-            let rawNames = text.split(/[\s,，、\n]+/);
-            return rawNames.map(n => n.replace(/^[0-9]+[\.。、,，)）]?\s*/, '').trim()).filter(n => n !== '');
-        }
-
-        function autoCountParticipants() {
-            const names = getCleanedNames();
-            const count = names.length;
-            const peopleSelect = document.getElementById('peopleSelect');
-            const customInput = document.getElementById('customPeople');
-            const previewDisplay = document.getElementById('parsedNamesDisplay');
-
-            if (count > 0) {
-                previewDisplay.innerText = `✅ 成功辨識 ${count} 人：${names.join('、')}`;
-                if (count <= 14) {
-                    peopleSelect.value = count;
-                    customInput.classList.add('hidden');
-                } else {
-                    peopleSelect.value = 'custom';
-                    customInput.classList.remove('hidden');
-                    customInput.value = count;
-                }
-            } else {
-                previewDisplay.innerText = "";
-            }
-        }
-
-        function generateReportAndImage() {
-            // 1. 取得所有輸入資料
-            const dateStr = document.getElementById('eventDate').value;
-            const startTime = document.getElementById('startTime').value || '未填寫';
-            const endTime = document.getElementById('endTime').value || '未填寫';
-            const host = document.getElementById('host').value || '未填寫';
+            const select = document.createElement('select');
+            let hasCurrentType = false;
             
-            let sport = document.getElementById('sportType').value;
-            if (sport === 'custom') sport = document.getElementById('customSport').value || '未填寫項目';
-
-            let formattedDate = '未填寫日期';
-            if (dateStr) {
-                const dateObj = new Date(dateStr);
-                formattedDate = `${dateObj.getMonth() + 1}月${dateObj.getDate()}日`;
-            }
-
-            let venueName = document.getElementById('venueSelect').value;
-            if (venueName === 'custom') venueName = document.getElementById('customVenue').value || '未填寫場地';
-
-            const address = document.getElementById('address').value || '未提供';
-            const courtFee = parseInt(document.getElementById('courtFee').value) || 0;
-            const itemFee = parseInt(document.getElementById('itemFee').value) || 0;
-            
-            const maxPeople = parseInt(document.getElementById('maxPeopleSelect').value) || 8;
-            let currentPeople = document.getElementById('peopleSelect').value;
-            if (currentPeople === 'custom') currentPeople = document.getElementById('customPeople').value;
-            currentPeople = parseInt(currentPeople) || 1;
-
-            const nameArray = getCleanedNames();
-            let numberedNameList = "";
-            for (let i = 0; i < maxPeople; i++) {
-                let name = nameArray[i] ? nameArray[i] : "";
-                numberedNameList += `${i + 1}. ${name}\n`;
-            }
-            numberedNameList = numberedNameList.replace(/\n$/, "");
-
-            const total = courtFee + itemFee;
-            const perPerson = Math.ceil(total / currentPeople); 
-
-            // 2. 準備短連結與純文字報表 (保留功能)
-            let mapLinkText = '';
-            let mapLinkImage = '';
-            if (address !== '未提供' && address.trim() !== '') {
-                const encodedAddress = encodeURIComponent(address);
-                mapLinkText = `\n📍導航: https://maps.google.com/?q=${encodedAddress}`;
-            }
-
-            const textReport = `【${formattedDate}${sport}揪團】
-⏰ ${startTime}~${endTime}
-📍 ${venueName}${mapLinkText}`;
-            document.getElementById('resultText').value = textReport;
-
-            // 3. 將資料填入隱藏的圖卡 HTML 中
-            document.getElementById('imgTitle').innerText = `${formattedDate} ${sport} 揪團`;
-            document.getElementById('imgTime').innerText = `⏰ 時間：${startTime} ~ ${endTime}`;
-            document.getElementById('imgHost').innerText = host;
-            document.getElementById('imgVenue').innerText = venueName;
-            document.getElementById('imgAddress').innerText = address;
-            document.getElementById('imgPeopleCount').innerText = `👥 參加名單 (${currentPeople}/${maxPeople}人)`;
-            document.getElementById('imgNameList').innerText = numberedNameList;
-            document.getElementById('imgPerPerson').innerText = `$${perPerson}`;
-            document.getElementById('imgFeeDetail').innerText = `場地 $${courtFee} / 雜費 $${itemFee}`;
-
-            // 4. 呼叫 html2canvas 將隱藏的 HTML 變成真實圖片
-            const captureArea = document.getElementById('captureArea');
-            html2canvas(captureArea, { scale: 2, backgroundColor: null }).then(canvas => {
-                const imgData = canvas.toDataURL('image/png');
-                const outputImage = document.getElementById('outputImage');
-                outputImage.src = imgData;
+            STATUS_OPTIONS.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt;
+                let priceTxt = '';
+                if (CASH_ITEMS[opt] !== undefined) priceTxt = ` (${CASH_ITEMS[opt]})`;
+                if (WIRE_ITEMS[opt] !== undefined) priceTxt = ` (${WIRE_ITEMS[opt]})`;
                 
-                // 顯示圖片區塊並向下捲動
-                const resultBox = document.getElementById('imageResultBox');
-                resultBox.classList.remove('hidden');
-                resultBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                option.innerText = opt + priceTxt;
+                if (p.type === opt) { option.selected = true; hasCurrentType = true; }
+                select.appendChild(option);
             });
+
+            if (!hasCurrentType && p.type) {
+                const customOpt = document.createElement('option');
+                customOpt.value = p.type;
+                customOpt.innerText = p.type;
+                customOpt.selected = true;
+                select.appendChild(customOpt);
+            }
+
+            const textOpt = document.createElement('option');
+            textOpt.value = "文字輸入";
+            textOpt.innerText = "✏️ 文字輸入...";
+            select.appendChild(textOpt);
+
+            select.onchange = (e) => { 
+                if (e.target.value === "文字輸入") {
+                    let customText = prompt("請輸入自訂狀態 (例如：已轉帳)：");
+                    if (customText && customText.trim() !== "") {
+                        p.type = customText.trim();
+                    } else {
+                        e.target.value = p.type;
+                        return;
+                    }
+                } else {
+                    p.type = e.target.value; 
+                }
+                saveAndRender(); 
+            };
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = p.paid;
+            checkbox.onchange = (e) => { p.paid = e.target.checked; saveAndRender(); };
+
+            const actionBtn = document.createElement('button');
+            actionBtn.className = 'action-btn';
+            actionBtn.innerText = '⋯';
+            actionBtn.onclick = () => openModal(index);
+
+            controlsDiv.appendChild(select);
+            controlsDiv.appendChild(checkbox);
+            controlsDiv.appendChild(actionBtn);
+            item.appendChild(nameSpan);
+            item.appendChild(controlsDiv);
+            listDiv.appendChild(item);
+        });
+
+        const courts = parseInt(document.getElementById('courtCount').value) || 0;
+        const maxCapacity = courts * 7;
+        const alertBox = document.getElementById('capacityAlert');
+        
+        if (maxCapacity > 0) {
+            let statusText = `目前人數：${actualPlayerCount} / ${maxCapacity} 人`;
+            alertBox.className = 'capacity-bar ';
+            if (actualPlayerCount > maxCapacity) {
+                alertBox.className += 'cap-over';
+                alertBox.innerText = `⚠️ 超收警告！${statusText} (已爆滿)`;
+            } else if (actualPlayerCount === maxCapacity) {
+                alertBox.className += 'cap-warn';
+                alertBox.innerText = `🛑 剛好滿編！${statusText}`;
+            } else {
+                alertBox.className += 'cap-safe';
+                alertBox.innerText = `✅ 暢打狀態！${statusText} (可再收 ${maxCapacity - actualPlayerCount} 人)`;
+            }
         }
 
-        function copyText() {
-            const text = document.getElementById('resultText');
-            text.select();
-            text.setSelectionRange(0, 99999); 
-            document.execCommand('copy');
-            alert('✅ 純文字已複製！');
+        document.getElementById('stats').innerHTML = `
+            現金繳費（${pCash}）<strong>${counts["現金"]}</strong> 位，共 ${amounts["現金"]} 元<br>
+            舊卡補價（${pDiff}）<strong>${counts["舊卡補價"]}</strong> 位，共 ${amounts["舊卡補價"]} 元<br>
+            買新卡（${pCard}）<strong>${counts["買新卡"]}</strong> 位，共 ${amounts["買新卡"]} 元
+        `;
+
+        const fee = parseInt(document.getElementById('laborFee').value) || 0;
+        document.getElementById('finalTotal').innerText = totalCashReceived - fee;
+    }
+
+    function generateReport() {
+        const teamName = document.getElementById('teamName').value;
+        const captainName = document.getElementById('captainName').value;
+        const playDate = document.getElementById('playDate').value;
+        const dayOfWeek = document.getElementById('dayOfWeek').innerText;
+        const courtName = document.getElementById('courtName').value;
+        const startTime = document.getElementById('startTime').value;
+        const endTime = document.getElementById('endTime').value;
+        const courtCount = document.getElementById('courtCount').value;
+        const fee = parseInt(document.getElementById('laborFee').value) || 0;
+
+        const pCash = parseInt(document.getElementById('priceCash').value) || 250;
+        const pCard = parseInt(document.getElementById('priceCard').value) || 2200;
+        const pDiff = parseInt(document.getElementById('priceDiff').value) || 10;
+        
+        const CASH_ITEMS = { "現金": pCash, "舊卡補價": pDiff, "買新卡": pCard };
+        const WIRE_ITEMS = { "零打匯款": pCash, "買卡匯款": pCard };
+
+        const labelSelects = document.querySelectorAll('.court-input');
+        const labelsArr = Array.from(labelSelects).map(sel => sel.value);
+        const courtLabelsStr = labelsArr.join(', ');
+
+        let cashCounts = { "現金": 0, "舊卡補價": 0, "買新卡": 0 };
+        let wireCounts = { "零打匯款": 0, "買卡匯款": 0 };
+        let totalCashReceived = 0;
+        let actualPlayerCount = 0;
+        
+        let playerListText = "";
+
+        players.forEach((p, idx) => {
+            let num = String(idx + 1).padStart(2, '0');
+            
+            if (p.type === "請假" || p.type === "缺席") {
+                playerListText += `✖ ${num}. ${p.name} (${p.type})\n`;
+            } else {
+                actualPlayerCount++;
+                if (CASH_ITEMS[p.type] !== undefined) {
+                    if (p.paid) {
+                        cashCounts[p.type]++;
+                        totalCashReceived += CASH_ITEMS[p.type];
+                        playerListText += `✔ ${num}. ${p.name} (${p.type === "現金" ? "零打" : p.type}) [已繳]\n`;
+                    } else {
+                        playerListText += `○ ${num}. ${p.name} (${p.type === "現金" ? "零打" : p.type}) [未繳]\n`;
+                    }
+                } else if (WIRE_ITEMS[p.type] !== undefined) {
+                    if (p.paid) {
+                        wireCounts[p.type]++;
+                        playerListText += `✔ ${num}. ${p.name} (${p.type}) [已匯]\n`;
+                    } else {
+                        playerListText += `○ ${num}. ${p.name} (${p.type}) [未匯]\n`;
+                    }
+                } else {
+                    playerListText += `• ${num}. ${p.name} (${p.type})\n`;
+                }
+            }
+        });
+
+        const finalTotal = totalCashReceived - fee;
+
+        const report = 
+`═══════════════════════
+🏸 【${teamName}】 結算報表
+═══════════════════════
+📅 日期：${playDate} ${dayOfWeek}
+⏰ 時間：${startTime} - ${endTime}
+📍 球場：${courtName}
+場地：${courtCount} 面 (編號：${courtLabelsStr})
+👤 值日生：${captainName}
+👥 出席人數：${actualPlayerCount} 人
+
+💵 【 當日現金點交 】
+───────────────────────
+• 零打現金 (${pCash}) ─ ${cashCounts["現金"]} 位 ＝ $${cashCounts["現金"] * pCash} 元
+• 舊卡補價 (${pDiff}) ─ ${cashCounts["舊卡補價"]} 位 ＝ $${cashCounts["舊卡補價"] * pDiff} 元
+• 現場買卡 (${pCard}) ─ ${cashCounts["買新卡"]} 位 ＝ $${cashCounts["買新卡"] * pCard} 元
+• 值日生折抵 ──── 扣除 $${fee} 元
+───────────────────────
+💰 本日應收現金總計：${finalTotal} 元
+
+📱 【 雲端匯款紀錄 】
+───────────────────────
+• 零打匯款 (${pCash}) ─ ${wireCounts["零打匯款"]} 位 ＝ $${wireCounts["零打匯款"] * pCash} 元
+• 買卡匯款 (${pCard}) ─ ${wireCounts["買卡匯款"]} 位 ＝ $${wireCounts["買卡匯款"] * pCard} 元
+
+📝 【 今日球友名單 】
+───────────────────────
+${playerListText}═══════════════════════
+                    © Created By Hueigo`;
+
+        const reportArea = document.getElementById('reportArea');
+        document.getElementById('reportOutput').value = report;
+        reportArea.style.display = 'block';
+        
+        // 改善滑動邏輯：讓畫面停在報表區塊的最上方，而不是網頁最底部
+        const yOffset = reportArea.getBoundingClientRect().top + window.scrollY - 15;
+        window.scrollTo({ top: yOffset, behavior: 'smooth' });
+    }
+
+    function copyReport() {
+        const reportText = document.getElementById('reportOutput');
+        reportText.select();
+        reportText.setSelectionRange(0, 99999); 
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(reportText.value).then(() => {
+                alert('✅ 結算報表已複製！\n現在可以直接去 LINE 貼上囉。');
+            });
+        } else {
+            document.execCommand("copy");
+            alert('✅ 結算報表已複製！\n現在可以直接去 LINE 貼上囉。');
         }
-    </script>
+    }
+
+    function saveReportToHistory() {
+        const reportText = document.getElementById('reportOutput').value;
+        if (!reportText) return;
+        const dateStr = document.getElementById('playDate').value;
+        const teamName = document.getElementById('teamName').value;
+
+        const exists = historyRecords.some(r => r.reportText === reportText);
+        if (exists) {
+            alert('💡 這份報表剛剛已經儲存過囉！');
+            return;
+        }
+
+        historyRecords.unshift({
+            date: dateStr,
+            team: teamName,
+            reportText: reportText,
+            timestamp: new Date().getTime()
+        });
+
+        localStorage.setItem('history_v24', JSON.stringify(historyRecords));
+        renderHistory();
+        alert('✅ 已成功封存至歷史紀錄！');
+    }
+
+    function renderHistory() {
+        const list = document.getElementById('historyList');
+        list.innerHTML = '';
+        if (historyRecords.length === 0) {
+            list.innerHTML = '<div style="text-align:center; color:#888; padding:10px;">目前還沒有任何紀錄喔</div>';
+            return;
+        }
+        historyRecords.forEach((record, index) => {
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            const title = document.createElement('div');
+            title.className = 'history-item-title';
+            title.innerText = `${record.date} - ${record.team}`;
+            const actions = document.createElement('div');
+            actions.className = 'history-actions';
+            const viewBtn = document.createElement('button');
+            viewBtn.className = 'btn-tiny btn-view';
+            viewBtn.innerText = '查看';
+            viewBtn.onclick = () => viewHistory(index);
+            const delBtn = document.createElement('button');
+            delBtn.className = 'btn-tiny btn-del-history';
+            delBtn.innerText = '刪除';
+            delBtn.onclick = () => deleteHistory(index);
+            actions.appendChild(viewBtn);
+            actions.appendChild(delBtn);
+            item.appendChild(title);
+            item.appendChild(actions);
+            list.appendChild(item);
+        });
+    }
+
+    function viewHistory(index) {
+        const reportArea = document.getElementById('reportArea');
+        document.getElementById('reportOutput').value = historyRecords[index].reportText;
+        reportArea.style.display = 'block';
+        
+        // 改善滑動邏輯：讓畫面停在報表區塊的最上方
+        const yOffset = reportArea.getBoundingClientRect().top + window.scrollY - 15;
+        window.scrollTo({ top: yOffset, behavior: 'smooth' });
+    }
+
+    function deleteHistory(index) {
+        if (confirm('確定要刪除這筆歷史紀錄嗎？（刪除後無法復原喔）')) {
+            historyRecords.splice(index, 1);
+            localStorage.setItem('history_v24', JSON.stringify(historyRecords));
+            renderHistory();
+        }
+    }
+
+    function toggleHistory() {
+        const area = document.getElementById('historyArea');
+        area.style.display = area.style.display === 'none' ? 'block' : 'none';
+        if (area.style.display === 'block') {
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+    }
+
+    function addPlayer() {
+        const nameInput = document.getElementById('newName');
+        const name = nameInput.value.trim();
+        if (name) {
+            players.push({ name: name, type: "現金", paid: false });
+            nameInput.value = '';
+            saveAndRender();
+        }
+    }
+
+    function toggleBulk() {
+        const area = document.getElementById('bulkArea');
+        area.style.display = area.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function bulkImport() {
+        const text = document.getElementById('bulkInput').value;
+        const lines = text.split('\n');
+        let importedCount = 0;
+        lines.forEach(line => {
+            const match = line.match(/^\s*[0-9]+[\.、\)\s]+(.+)/);
+            if (match) {
+                let cleanName = match[1].trim();
+                if (cleanName) {
+                    players.push({ name: cleanName, type: "現金", paid: false });
+                    importedCount++;
+                }
+            }
+        });
+        if (importedCount > 0) {
+            alert(`成功過濾並匯入 ${importedCount} 位球友！`);
+            document.getElementById('bulkInput').value = '';
+            toggleBulk();
+            saveAndRender();
+        } else {
+            alert('沒有讀取到符合「數字編號開頭」的有效名單，請確認貼上的內容喔！\n(格式範例： 1. 王大明)');
+        }
+    }
+
+    function resetData() {
+        if(confirm('確定要清空今日所有設定與名單嗎？\n(別擔心，已存入「歷史紀錄」的報表不會被刪除)')) {
+            const savedHistory = localStorage.getItem('history_v24');
+            localStorage.clear();
+            if (savedHistory) localStorage.setItem('history_v24', savedHistory);
+            location.reload(); 
+        }
+    }
+
+    init();
+</script>
+
 </body>
 </html>
