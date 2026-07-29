@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>揪團報名小幫手</title>
+    <!-- 引入將網頁轉為圖片的套件 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 15px; background-color: #f4f5f7; margin: 0; }
+        .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        h2 { margin-top: 0; color: #06C755; font-size: 20px; text-align: center; margin-bottom: 15px; }
+        
+        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+        .full-width { grid-column: span 2; }
+        .flex-3-cols { display: flex; gap: 10px; }
+        .flex-3-cols > div { flex: 1; min-width: 0; }
+        
+        label { display: block; font-weight: bold; color: #444; font-size: 13px; margin-bottom: 4px; white-space: nowrap; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 15px; background-color: #fafafa; }
+        textarea { height: 70px; resize: none; }
+        
+        .hidden { display: none; }
+        .btn-primary { width: 100%; padding: 12px; background-color: #06C755; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-dark { width: 100%; padding: 12px; background-color: #333; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        #resultText { height: 120px; line-height: 1.4; background-color: #fff; }
+        .preview-text { font-size: 13px; color: #06C755; margin-top: 5px; font-weight: bold; }
+
+        /* --- 華麗圖卡的專屬設計 (隱藏在背景，擷取時才用) --- */
+        #captureArea {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+            width: 400px;
+            background: #fff;
+            padding: 20px;
+            box-sizing: border-box;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+        .ticket-card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            overflow: hidden;
+            border: 1px solid #eee;
+        }
+        .ticket-header {
+            background: linear-gradient(135deg, #00C675, #008855);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .ticket-header h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 1px; }
+        .ticket-header p { margin: 5px 0 0 0; font-size: 14px; opacity: 0.9; }
+        .ticket-body { padding: 20px; }
+        .info-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #ddd; padding: 10px 0; }
+        .info-label { color: #888; font-size: 14px; font-weight: bold; }
+        .info-value { color: #333; font-size: 15px; font-weight: bold; text-align: right; max-width: 65%; word-break: break-all; }
+        .name-list-box { background: #f8f9fa; border-radius: 8px; padding: 15px; margin-top: 15px; }
+        .name-list-title { color: #555; font-size: 14px; font-weight: bold; margin-bottom: 8px; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
+        .name-list-content { font-size: 15px; color: #333; line-height: 1.6; white-space: pre-wrap; }
+        .price-box { text-align: center; background: #FFF4E5; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #FFD8A8; }
+        .price-label { color: #D97706; font-size: 14px; font-weight: bold; }
+        .price-value { color: #E65100; font-size: 32px; font-weight: 900; margin: 5px 0; }
+        .ticket-footer { background: #f1f3f5; padding: 12px; text-align: center; color: #666; font-size: 12px; font-weight: bold; }
+
+        /* 顯示生成的圖片區域 */
+        #imageResultBox { text-align: center; padding: 15px; background: #fff8e1; border-radius: 10px; margin-top: 15px; border: 1px dashed #ffc107; }
+        #outputImage { max-width: 100%; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>📝 揪團報名小幫手</h2>
+        
+        <div class="grid-container">
+            <!-- 欄位保持與上一版相同 -->
+            <div class="full-width flex-3-cols">
+                <div><label>日期</label><input type="date" id="eventDate" style="padding-left: 2px; padding-right: 2px;"></div>
+                <div><label>開始</label><input type="time" id="startTime" style="padding-left: 2px; padding-right: 2px;"></div>
+                <div><label>結束</label><input type="time" id="endTime" style="padding-left: 2px; padding-right: 2px;"></div>
+            </div>
+
+            <div>
+                <label>球聚種類</label>
+                <select id="sportType" onchange="toggleCustomSport()">
+                    <option value="匹克球" selected>匹克球</option>
+                    <option value="羽球">羽球</option>
+                    <option value="保齡球">保齡球</option>
+                    <option value="籃球">籃球</option>
+                    <option value="桌球">桌球</option>
+                    <option value="撞球">撞球</option>
+                    <option value="custom">其他 (輸入)</option>
+                </select>
+            </div>
+            <div><label>主揪值日生</label><input type="text" id="host" placeholder="例如: 小明"></div>
+            <div id="customSportBox" class="full-width hidden"><input type="text" id="customSport" placeholder="請輸入自訂項目名稱"></div>
+
+            <div>
+                <label>場地名稱</label>
+                <select id="venueSelect" onchange="autoFillAddress()">
+                    <option value="新羽力羽球俱樂部5號場">新羽力羽球俱樂部5號場</option>
+                    <option value="易羽球館">易羽球館</option>
+                    <option value="小碧潭京站美食廣場5F">小碧潭京站美食廣場5F</option>
+                    <option value="custom">自訂場地 (輸入)</option>
+                </select>
+            </div>
+            <div><label>地址</label><input type="text" id="address" placeholder="自動帶入"></div>
+            <div id="customVenueBox" class="full-width hidden"><input type="text" id="customVenue" placeholder="請輸入自訂場地名稱"></div>
+
+            <div><label>總場地費 ($)</label><input type="number" id="courtFee" placeholder="例: 1200"></div>
+            <div><label>器材/雜費 ($)</label><input type="number" id="itemFee" placeholder="無則填0"></div>
+
+            <div>
+                <label>預計滿團人數</label>
+                <select id="maxPeopleSelect"></select>
+            </div>
+            <div>
+                <label>目前報名人數</label>
+                <select id="peopleSelect" onchange="toggleCustomPeople()"></select>
+                <input type="number" id="customPeople" class="hidden" placeholder="請輸入" style="margin-top:5px;">
+            </div>
+
+            <div class="full-width">
+                <label>智慧參加名單 (貼上後自動排版與除錯)</label>
+                <textarea id="participants" placeholder="可直接貼上帶有數字的名單，系統會自動淨化" oninput="autoCountParticipants()"></textarea>
+                <div id="parsedNamesDisplay" class="preview-text"></div>
+            </div>
+        </div>
+
+        <!-- 按鈕文字改為產生圖卡 -->
+        <button class="btn-primary" onclick="generateReportAndImage()">🎨 一鍵產生華麗報表圖卡</button>
+    </div>
+
+    <!-- 圖片顯示區塊 -->
+    <div id="imageResultBox" class="hidden">
+        <h3 style="margin-top: 0; color: #E65100;">✨ 您的專屬圖卡已產生！</h3>
+        <p style="font-size: 14px; color: #555; margin-bottom: 5px;">👇 <b>手機操作方式</b>：請「長按」下方圖片 ➔ 選擇「複製」或「儲存圖片」 ➔ 接著到 LINE 貼上即可！</p>
+        <img id="outputImage" src="" alt="生成的報表圖卡">
+    </div>
+
+    <!-- 保留文字連結，以備不時之需 -->
+    <div class="card" style="margin-top: 15px;">
+        <label>若想附上可點擊的地圖連結，可複製下方純文字：</label>
+        <textarea id="resultText" readonly></textarea>
+        <button class="btn-dark" onclick="copyText()">複製純文字</button>
+    </div>
+
+    <!-- 隱藏的圖卡渲染區 (供 html2canvas 拍照用) -->
+    <div id="captureArea">
+        <div class="ticket-card">
+            <div class="ticket-header">
+                <h1 id="imgTitle">8月8日匹克球揪團</h1>
+                <p id="imgTime">⏰ 14:00 ~ 16:00</p>
+            </div>
+            <div class="ticket-body">
+                <div class="info-row">
+                    <span class="info-label">👤 主揪值日生</span>
+                    <span class="info-value" id="imgHost">小明</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">📍 場地名稱</span>
+                    <span class="info-value" id="imgVenue">場地</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">🗺️ 場地地址</span>
+                    <span class="info-value" id="imgAddress">地址</span>
+                </div>
+                
+                <div class="name-list-box">
+                    <div class="name-list-title" id="imgPeopleCount">👥 參加名單 (8/8人)</div>
+                    <div class="name-list-content" id="imgNameList">1. 小明<br>2. 小華</div>
+                </div>
+
+                <div class="price-box">
+                    <div class="price-label">💰 本次每人均攤費用</div>
+                    <div class="price-value" id="imgPerPerson">$150</div>
+                    <div style="font-size: 12px; color: #888;" id="imgFeeDetail">場地 $1200 / 雜費 $0</div>
+                </div>
+            </div>
+            <div class="ticket-footer">
+                🙏 感謝參與，請將費用交給值日生喔！
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const venueData = {
+            "新羽力羽球俱樂部5號場": "新北市新店區安康路二段295-3號",
+            "易羽球館": "新北市新店區安泰路58號之1",
+            "小碧潭京站美食廣場5F": "新北市新店區中央路157號5樓"
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const now = new Date();
+            const localISOTime = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString();
+            document.getElementById('eventDate').value = localISOTime.split('T')[0];
+            
+            document.getElementById('startTime').value = '14:00';
+            document.getElementById('endTime').value = '16:00';
+
+            const maxPeopleSelect = document.getElementById('maxPeopleSelect');
+            for (let i = 1; i <= 24; i++) {
+                let selected = (i === 8) ? "selected" : "";
+                maxPeopleSelect.innerHTML += `<option value="${i}" ${selected}>${i} 人</option>`;
+            }
+
+            const peopleSelect = document.getElementById('peopleSelect');
+            for (let i = 1; i <= 14; i++) {
+                peopleSelect.innerHTML += `<option value="${i}">${i} 人</option>`;
+            }
+            peopleSelect.innerHTML += `<option value="custom">15人以上 (自行輸入)</option>`;
+
+            autoFillAddress();
+        });
+
+        function toggleCustomSport() {
+            const select = document.getElementById('sportType');
+            const box = document.getElementById('customSportBox');
+            if (select.value === 'custom') box.classList.remove('hidden');
+            else box.classList.add('hidden');
+        }
+
+        function autoFillAddress() {
+            const select = document.getElementById('venueSelect');
+            const box = document.getElementById('customVenueBox');
+            const addressInput = document.getElementById('address');
+            
+            if (select.value === 'custom') {
+                box.classList.remove('hidden');
+                addressInput.value = '';
+            } else {
+                box.classList.add('hidden');
+                if (venueData[select.value] !== undefined) {
+                    addressInput.value = venueData[select.value];
+                }
+            }
+        }
+
+        function toggleCustomPeople() {
+            const select = document.getElementById('peopleSelect');
+            const customInput = document.getElementById('customPeople');
+            if (select.value === 'custom') customInput.classList.remove('hidden');
+            else customInput.classList.add('hidden');
+        }
+
+        function getCleanedNames() {
+            const text = document.getElementById('participants').value;
+            let rawNames = text.split(/[\s,，、\n]+/);
+            return rawNames.map(n => n.replace(/^[0-9]+[\.。、,，)）]?\s*/, '').trim()).filter(n => n !== '');
+        }
+
+        function autoCountParticipants() {
+            const names = getCleanedNames();
+            const count = names.length;
+            const peopleSelect = document.getElementById('peopleSelect');
+            const customInput = document.getElementById('customPeople');
+            const previewDisplay = document.getElementById('parsedNamesDisplay');
+
+            if (count > 0) {
+                previewDisplay.innerText = `✅ 成功辨識 ${count} 人：${names.join('、')}`;
+                if (count <= 14) {
+                    peopleSelect.value = count;
+                    customInput.classList.add('hidden');
+                } else {
+                    peopleSelect.value = 'custom';
+                    customInput.classList.remove('hidden');
+                    customInput.value = count;
+                }
+            } else {
+                previewDisplay.innerText = "";
+            }
+        }
+
+        function generateReportAndImage() {
+            // 1. 取得所有輸入資料
+            const dateStr = document.getElementById('eventDate').value;
+            const startTime = document.getElementById('startTime').value || '未填寫';
+            const endTime = document.getElementById('endTime').value || '未填寫';
+            const host = document.getElementById('host').value || '未填寫';
+            
+            let sport = document.getElementById('sportType').value;
+            if (sport === 'custom') sport = document.getElementById('customSport').value || '未填寫項目';
+
+            let formattedDate = '未填寫日期';
+            if (dateStr) {
+                const dateObj = new Date(dateStr);
+                formattedDate = `${dateObj.getMonth() + 1}月${dateObj.getDate()}日`;
+            }
+
+            let venueName = document.getElementById('venueSelect').value;
+            if (venueName === 'custom') venueName = document.getElementById('customVenue').value || '未填寫場地';
+
+            const address = document.getElementById('address').value || '未提供';
+            const courtFee = parseInt(document.getElementById('courtFee').value) || 0;
+            const itemFee = parseInt(document.getElementById('itemFee').value) || 0;
+            
+            const maxPeople = parseInt(document.getElementById('maxPeopleSelect').value) || 8;
+            let currentPeople = document.getElementById('peopleSelect').value;
+            if (currentPeople === 'custom') currentPeople = document.getElementById('customPeople').value;
+            currentPeople = parseInt(currentPeople) || 1;
+
+            const nameArray = getCleanedNames();
+            let numberedNameList = "";
+            for (let i = 0; i < maxPeople; i++) {
+                let name = nameArray[i] ? nameArray[i] : "";
+                numberedNameList += `${i + 1}. ${name}\n`;
+            }
+            numberedNameList = numberedNameList.replace(/\n$/, "");
+
+            const total = courtFee + itemFee;
+            const perPerson = Math.ceil(total / currentPeople); 
+
+            // 2. 準備短連結與純文字報表 (保留功能)
+            let mapLinkText = '';
+            let mapLinkImage = '';
+            if (address !== '未提供' && address.trim() !== '') {
+                const encodedAddress = encodeURIComponent(address);
+                mapLinkText = `\n📍導航: https://maps.google.com/?q=${encodedAddress}`;
+            }
+
+            const textReport = `【${formattedDate}${sport}揪團】
+⏰ ${startTime}~${endTime}
+📍 ${venueName}${mapLinkText}`;
+            document.getElementById('resultText').value = textReport;
+
+            // 3. 將資料填入隱藏的圖卡 HTML 中
+            document.getElementById('imgTitle').innerText = `${formattedDate} ${sport} 揪團`;
+            document.getElementById('imgTime').innerText = `⏰ 時間：${startTime} ~ ${endTime}`;
+            document.getElementById('imgHost').innerText = host;
+            document.getElementById('imgVenue').innerText = venueName;
+            document.getElementById('imgAddress').innerText = address;
+            document.getElementById('imgPeopleCount').innerText = `👥 參加名單 (${currentPeople}/${maxPeople}人)`;
+            document.getElementById('imgNameList').innerText = numberedNameList;
+            document.getElementById('imgPerPerson').innerText = `$${perPerson}`;
+            document.getElementById('imgFeeDetail').innerText = `場地 $${courtFee} / 雜費 $${itemFee}`;
+
+            // 4. 呼叫 html2canvas 將隱藏的 HTML 變成真實圖片
+            const captureArea = document.getElementById('captureArea');
+            html2canvas(captureArea, { scale: 2, backgroundColor: null }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const outputImage = document.getElementById('outputImage');
+                outputImage.src = imgData;
+                
+                // 顯示圖片區塊並向下捲動
+                const resultBox = document.getElementById('imageResultBox');
+                resultBox.classList.remove('hidden');
+                resultBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
+
+        function copyText() {
+            const text = document.getElementById('resultText');
+            text.select();
+            text.setSelectionRange(0, 99999); 
+            document.execCommand('copy');
+            alert('✅ 純文字已複製！');
+        }
+    </script>
+</body>
+</html>
