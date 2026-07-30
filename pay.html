@@ -67,20 +67,29 @@
             background: white; padding: 15px; border-radius: 8px; 
             margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
         }
-        .summary-details { font-size: 1rem; color: #333; line-height: 1.8; }
+        .summary-details { font-size: 1rem; color: #333; line-height: 1.8; margin-bottom: 15px; }
         .summary-details strong { color: #2e7d32; font-size: 1.1rem; }
+        
+        /* 新增：代收與勞務費版面調整 */
+        .fee-section { border-top: 1px solid #eee; padding-top: 15px; margin-top: 5px; }
+        .fee-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .fee-box input { width: 70px; text-align: right; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem;}
+        
+        /* 新增：備忘錄樣式 */
+        .memo-box { display: flex; align-items: flex-start; margin-bottom: 10px; }
+        .memo-box span { width: 90px; color: #555; font-weight: bold; margin-top: 8px;}
+        .memo-box textarea { flex: 1; height: 60px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95rem; font-family: inherit; resize: none;}
+
         .total-amount { 
             font-size: 1.6rem; color: #d32f2f; font-weight: bold; 
-            text-align: right; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;
+            text-align: right; margin-top: 15px; border-top: 2px dashed #ffcdd2; padding-top: 15px;
         }
-        .fee-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; margin-top: 5px;}
-        .fee-box input { width: 60px; text-align: right; padding: 5px; border: 1px solid #ccc; border-radius: 4px;}
 
         /* 各種區塊共用樣式 */
         .add-section, .history-section { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .add-box { display: flex; gap: 8px; margin-bottom: 10px; }
         .add-box input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
-        textarea { width: 100%; height: 80px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; box-sizing: border-box; margin-bottom: 8px; font-family: inherit;}
+        textarea.bulk-input { width: 100%; height: 80px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; box-sizing: border-box; margin-bottom: 8px; font-family: inherit;}
         .btn { padding: 10px 15px; background: #2e7d32; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; }
         .btn-outline { background: white; color: #2e7d32; border: 1px solid #2e7d32; width: 100%; margin-bottom: 10px;}
         .btn-export { background: #1976d2; width: 100%; margin-bottom: 15px; font-weight: bold;}
@@ -104,7 +113,7 @@
         .player-item:last-child { border-bottom: none; }
         .player-name { font-weight: bold; flex: 1; font-size: 1.1rem;}
         .player-controls { display: flex; align-items: center; gap: 8px; }
-        select { padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.95rem; background-color: #f9f9f9;}
+        select.status-select { padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.95rem; background-color: #f9f9f9;}
         input[type="checkbox"] { width: 22px; height: 22px; accent-color: #2e7d32; margin: 0 5px;}
         .action-btn { color: #555; background: none; border: none; font-size: 1.5rem; padding: 0 5px; cursor: pointer; line-height: 1;}
         .btn-danger-full { background: white; color: #d32f2f; border: 1px solid #d32f2f; width: 100%; margin-top: 10px; font-weight: bold; }
@@ -213,24 +222,36 @@
     <!-- 財務結算 -->
     <div class="summary">
         <div class="summary-details" id="stats"></div>
-        <div class="fee-box">
-            <span>勞務費（折抵）：</span>
-            <input type="number" id="laborFee" value="200" oninput="saveAndRender()">
+        
+        <!-- 新增的代收與勞務費版面 -->
+        <div class="fee-section">
+            <div class="fee-box">
+                <span style="color: #1976d2; font-weight: bold;">➕ 代收穿線/裝備費：</span>
+                <input type="number" id="extraFee" value="0" placeholder="例如: 500" oninput="saveAndRender()">
+            </div>
+            <div class="fee-box">
+                <span style="color: #d32f2f; font-weight: bold;">➖ 勞務費（折抵）：</span>
+                <input type="number" id="laborFee" value="200" oninput="saveAndRender()">
+            </div>
+            <div class="memo-box">
+                <span>📝 備忘錄：</span>
+                <textarea id="memoText" placeholder="在此記錄收拍明細，例如：拿走小明的 YY 拍穿 26 磅" oninput="saveAndRender()"></textarea>
+            </div>
         </div>
+
         <div class="total-amount">
-            本日現金結算：<span id="finalTotal">0</span> 元
+            本日應收現金結算：<span id="finalTotal">0</span> 元
         </div>
     </div>
 
     <!-- 報表匯出功能 -->
     <button class="btn btn-export" onclick="generateReport()">📄 產生給場主的結算報表</button>
     <div id="reportArea" style="display: none; background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <!-- 將按鈕區塊移到上方，方便產生報表後立刻點擊 -->
         <div style="display: flex; gap: 10px; margin-bottom: 12px;">
             <button class="btn" style="flex: 1; background: #e65100; font-weight: bold;" onclick="copyReport()">📋 一鍵複製</button>
             <button class="btn" style="flex: 1; background: #2e7d32; font-weight: bold;" onclick="saveReportToHistory()">💾 儲存紀錄</button>
         </div>
-        <textarea id="reportOutput" style="height: 420px; margin-bottom: 0; background: #f9f9f9; font-family: monospace;" readonly></textarea>
+        <textarea id="reportOutput" style="height: 480px; margin-bottom: 0; background: #f9f9f9; font-family: monospace; width: 100%; box-sizing: border-box;" readonly></textarea>
     </div>
 
     <!-- 新增與匯入區塊 -->
@@ -238,7 +259,7 @@
         <button class="btn btn-outline" onclick="toggleBulk()">📋 展開/隱藏 LINE 批次匯入</button>
         <div id="bulkArea" style="display: none;">
             <span class="helper-text">💡 Android 手機可直接貼上「整篇接龍對話」，系統會自動過濾並抓取數字開頭的名單！</span>
-            <textarea id="bulkInput" placeholder="請直接貼上 LINE 訊息...&#10;系統會自動抓取例如：&#10;1. 姓名A&#10;2. 姓名B"></textarea>
+            <textarea id="bulkInput" class="bulk-input" placeholder="請直接貼上 LINE 訊息...&#10;系統會自動抓取例如：&#10;1. 姓名A&#10;2. 姓名B"></textarea>
             <button class="btn" style="width: 100%; margin-bottom: 15px;" onclick="bulkImport()">智慧匯入名單</button>
         </div>
         
@@ -303,21 +324,21 @@
     }
 
     function init() {
-        // 版本號升級至 v24 確保修改生效
-        if (!localStorage.getItem('playDate_v24')) {
+        // 版本號升級至 v25 確保修改生效 (加入 extraFee 和 memoText)
+        if (!localStorage.getItem('playDate_v25')) {
             document.getElementById('playDate').value = getTodayString();
         }
 
-        const fields = ['teamName', 'courtName', 'captainName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee', 'priceCash', 'priceCard', 'priceDiff'];
+        const fields = ['teamName', 'courtName', 'captainName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee', 'priceCash', 'priceCard', 'priceDiff', 'extraFee', 'memoText'];
         fields.forEach(field => {
-            const saved = localStorage.getItem(field + '_v24');
+            const saved = localStorage.getItem(field + '_v25');
             if (saved !== null) document.getElementById(field).value = saved;
         });
 
-        const savedType = localStorage.getItem('labelType_v24');
+        const savedType = localStorage.getItem('labelType_v25');
         if (savedType) currentLabelType = savedType;
         
-        const savedLabels = localStorage.getItem('courtLabels_v24');
+        const savedLabels = localStorage.getItem('courtLabels_v25');
         if (savedLabels) {
             restoreCourtInputs(JSON.parse(savedLabels));
         } else {
@@ -326,10 +347,10 @@
 
         updateDay();
 
-        const savedData = localStorage.getItem('badmintonData_v24');
+        const savedData = localStorage.getItem('badmintonData_v25');
         if (savedData) players = JSON.parse(savedData);
 
-        const savedHistory = localStorage.getItem('history_v24');
+        const savedHistory = localStorage.getItem('history_v25');
         if (savedHistory) historyRecords = JSON.parse(savedHistory);
         
         render();
@@ -337,15 +358,15 @@
     }
 
     function saveAndRender() {
-        const fields = ['teamName', 'courtName', 'captainName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee', 'priceCash', 'priceCard', 'priceDiff'];
+        const fields = ['teamName', 'courtName', 'captainName', 'playDate', 'startTime', 'endTime', 'courtCount', 'laborFee', 'priceCash', 'priceCard', 'priceDiff', 'extraFee', 'memoText'];
         fields.forEach(field => {
-            localStorage.setItem(field + '_v24', document.getElementById(field).value);
+            localStorage.setItem(field + '_v25', document.getElementById(field).value);
         });
         
-        localStorage.setItem('labelType_v24', currentLabelType);
+        localStorage.setItem('labelType_v25', currentLabelType);
         const labelSelects = document.querySelectorAll('.court-input');
-        localStorage.setItem('courtLabels_v24', JSON.stringify(Array.from(labelSelects).map(sel => sel.value)));
-        localStorage.setItem('badmintonData_v24', JSON.stringify(players));
+        localStorage.setItem('courtLabels_v25', JSON.stringify(Array.from(labelSelects).map(sel => sel.value)));
+        localStorage.setItem('badmintonData_v25', JSON.stringify(players));
         render();
     }
 
@@ -471,6 +492,7 @@
             controlsDiv.className = 'player-controls';
 
             const select = document.createElement('select');
+            select.className = 'status-select';
             let hasCurrentType = false;
             
             STATUS_OPTIONS.forEach(opt => {
@@ -557,7 +579,8 @@
         `;
 
         const fee = parseInt(document.getElementById('laborFee').value) || 0;
-        document.getElementById('finalTotal').innerText = totalCashReceived - fee;
+        const extraFee = parseInt(document.getElementById('extraFee').value) || 0;
+        document.getElementById('finalTotal').innerText = totalCashReceived + extraFee - fee;
     }
 
     function generateReport() {
@@ -569,7 +592,10 @@
         const startTime = document.getElementById('startTime').value;
         const endTime = document.getElementById('endTime').value;
         const courtCount = document.getElementById('courtCount').value;
+        
         const fee = parseInt(document.getElementById('laborFee').value) || 0;
+        const extraFee = parseInt(document.getElementById('extraFee').value) || 0;
+        const memoText = document.getElementById('memoText').value.trim();
 
         const pCash = parseInt(document.getElementById('priceCash').value) || 250;
         const pCard = parseInt(document.getElementById('priceCard').value) || 2200;
@@ -617,7 +643,14 @@
             }
         });
 
-        const finalTotal = totalCashReceived - fee;
+        const finalTotal = totalCashReceived + extraFee - fee;
+
+        let extraFeeSection = '';
+        if (extraFee > 0 || memoText !== '') {
+            extraFeeSection = `\n🛠️ 【 穿線與其他服務 】\n───────────────────────\n`;
+            if (extraFee > 0) extraFeeSection += `• 代收穿線/裝備費：+$${extraFee} 元\n`;
+            if (memoText !== '') extraFeeSection += `📌 備忘錄：\n${memoText}\n`;
+        }
 
         const report = 
 `═══════════════════════
@@ -635,8 +668,7 @@
 • 零打現金 (${pCash}) ─ ${cashCounts["現金"]} 位 ＝ $${cashCounts["現金"] * pCash} 元
 • 舊卡補價 (${pDiff}) ─ ${cashCounts["舊卡補價"]} 位 ＝ $${cashCounts["舊卡補價"] * pDiff} 元
 • 現場買卡 (${pCard}) ─ ${cashCounts["買新卡"]} 位 ＝ $${cashCounts["買新卡"] * pCard} 元
-• 值日生折抵 ──── 扣除 $${fee} 元
-───────────────────────
+• 值日生折抵 ──── 扣除 $${fee} 元${extraFeeSection}───────────────────────
 💰 本日應收現金總計：${finalTotal} 元
 
 📱 【 雲端匯款紀錄 】
@@ -653,7 +685,6 @@ ${playerListText}═════════════════════
         document.getElementById('reportOutput').value = report;
         reportArea.style.display = 'block';
         
-        // 改善滑動邏輯：讓畫面停在報表區塊的最上方，而不是網頁最底部
         const yOffset = reportArea.getBoundingClientRect().top + window.scrollY - 15;
         window.scrollTo({ top: yOffset, behavior: 'smooth' });
     }
@@ -691,7 +722,7 @@ ${playerListText}═════════════════════
             timestamp: new Date().getTime()
         });
 
-        localStorage.setItem('history_v24', JSON.stringify(historyRecords));
+        localStorage.setItem('history_v25', JSON.stringify(historyRecords));
         renderHistory();
         alert('✅ 已成功封存至歷史紀錄！');
     }
@@ -732,7 +763,6 @@ ${playerListText}═════════════════════
         document.getElementById('reportOutput').value = historyRecords[index].reportText;
         reportArea.style.display = 'block';
         
-        // 改善滑動邏輯：讓畫面停在報表區塊的最上方
         const yOffset = reportArea.getBoundingClientRect().top + window.scrollY - 15;
         window.scrollTo({ top: yOffset, behavior: 'smooth' });
     }
@@ -740,7 +770,7 @@ ${playerListText}═════════════════════
     function deleteHistory(index) {
         if (confirm('確定要刪除這筆歷史紀錄嗎？（刪除後無法復原喔）')) {
             historyRecords.splice(index, 1);
-            localStorage.setItem('history_v24', JSON.stringify(historyRecords));
+            localStorage.setItem('history_v25', JSON.stringify(historyRecords));
             renderHistory();
         }
     }
@@ -794,9 +824,9 @@ ${playerListText}═════════════════════
 
     function resetData() {
         if(confirm('確定要清空今日所有設定與名單嗎？\n(別擔心，已存入「歷史紀錄」的報表不會被刪除)')) {
-            const savedHistory = localStorage.getItem('history_v24');
+            const savedHistory = localStorage.getItem('history_v25');
             localStorage.clear();
-            if (savedHistory) localStorage.setItem('history_v24', savedHistory);
+            if (savedHistory) localStorage.setItem('history_v25', savedHistory);
             location.reload(); 
         }
     }
